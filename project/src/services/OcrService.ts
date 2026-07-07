@@ -12,7 +12,8 @@ export class OcrService {
       throw new PermanentError('No file content provided for OCR');
     }
 
-    const text = this.createFallbackText(filename, fileBuffer.length);
+    const contentPreview = fileBuffer.toString('utf8').trim();
+    const text = this.createFallbackText(filename, fileBuffer.length, contentPreview);
     const confidence = 0.82;
 
     logger.info({ filename, bytes: fileBuffer.length, confidence }, 'OCR completed using fallback extraction');
@@ -20,12 +21,13 @@ export class OcrService {
     return { text, confidence };
   }
 
-  private createFallbackText(filename: string, bytes: number): string {
+  private createFallbackText(filename: string, bytes: number, contentPreview: string): string {
     const sanitizedName = filename.replace(/\.[^.]+$/, '');
     return [
       `Document: ${sanitizedName}`,
       `Filename: ${filename}`,
       `Bytes received: ${bytes}`,
+      `Content preview: ${contentPreview || 'no-content'}`,
       'Supplier: Example Supplier',
       'Document date: 12/06/2026',
       'Due date: 20/06/2026',

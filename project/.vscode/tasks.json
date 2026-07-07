@@ -151,6 +151,90 @@
 			"command": "npm.cmd run process-file -- candidate_pack/05_TEST_DATASET/whatsapp_inbox/facture_plombipro_F2026-0433.pdf",
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "build-tests",
+			"type": "shell",
+			"command": "npm.cmd run build",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-docs-test",
+			"type": "shell",
+			"command": "npm.cmd run test:docs",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "rerun-docs-test",
+			"type": "shell",
+			"command": "npm.cmd run test:docs",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "rerun-docs-test-2",
+			"type": "shell",
+			"command": "npm.cmd run test:docs",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "rerun-docs-test-3",
+			"type": "shell",
+			"command": "npm.cmd run test:docs",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "get-saved-doc",
+			"type": "shell",
+			"command": "npm.cmd run get-document -- d7be940a-0af7-46e3-a18c-4199602f9df4",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "install-api-deps",
+			"type": "shell",
+			"command": "npm.cmd install",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-api",
+			"type": "shell",
+			"command": "npm.cmd run build",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "install-api-types",
+			"type": "shell",
+			"command": "npm.cmd install -D @types/express @types/multer",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-api-2",
+			"type": "shell",
+			"command": "npm.cmd run build",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-api-server",
+			"type": "shell",
+			"command": "node dist/main.js",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "curl-health",
+			"type": "shell",
+			"command": "curl.exe http://localhost:3000/health",
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }

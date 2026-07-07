@@ -10,7 +10,7 @@ export class ClassificationService {
   public classify(text: string): ClassificationResult {
     const normalized = text.toLowerCase();
 
-    if (normalized.includes('invoice') || normalized.includes('facture')) {
+    if (normalized.includes('invoice') || normalized.includes('facture') || normalized.includes('bill') || normalized.includes('facture fournisseur')) {
       return { type: DocumentType.INVOICE, confidence: 0.91 };
     }
 
