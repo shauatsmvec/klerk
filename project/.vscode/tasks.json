@@ -1,0 +1,86 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "install-deps",
+			"type": "shell",
+			"command": "npm install",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "install-deps-cmd",
+			"type": "shell",
+			"command": "cmd.exe /c \"cd /d c:/Users/lenovo/Desktop/free_lancing/klerk/project && npm.cmd install\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "install-deps-cmd2",
+			"type": "shell",
+			"command": "cmd.exe /c \"cd /d c:/Users/lenovo/Desktop/free_lancing/klerk/project & npm.cmd install\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "check-node",
+			"type": "shell",
+			"command": "node --version",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "install-deps-npmcmd",
+			"type": "shell",
+			"command": "npm.cmd install",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-project",
+			"type": "shell",
+			"command": "npm.cmd run build",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-dev",
+			"type": "shell",
+			"command": "npm.cmd run dev",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "install-pg",
+			"type": "shell",
+			"command": "npm.cmd install pg @types/pg --save",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-migration",
+			"type": "shell",
+			"command": "node -e \"require('ts-node/register'); const { runMigration } = require('./src/infrastructure/database'); runMigration().then(() => process.exit(0)).catch((err) => { console.error(err); process.exit(1); });\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-migration2",
+			"type": "shell",
+			"command": "cmd.exe /c \"cd /d c:/Users/lenovo/Desktop/free_lancing/klerk/project && node -e \"require('ts-node/register'); const { runMigration } = require('./src/infrastructure/database'); runMigration().then(() => process.exit(0)).catch((err) => { console.error(err); process.exit(1); });\"\"",
+			"problemMatcher": []
+		},
+		{
+			"label": "run-migration-js",
+			"type": "shell",
+			"command": "node scripts/run-migration.js",
+			"problemMatcher": []
+		},
+		{
+			"label": "debug-db",
+			"type": "shell",
+			"command": "node scripts/debug-db.js",
+			"problemMatcher": []
+		}
+	]
+}
