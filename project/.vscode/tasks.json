@@ -81,6 +81,76 @@
 			"type": "shell",
 			"command": "node scripts/debug-db.js",
 			"problemMatcher": []
+		},
+		{
+			"label": "build-day2",
+			"type": "shell",
+			"command": "npm.cmd run build",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-demo",
+			"type": "shell",
+			"command": "node dist/demo.js",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-cli",
+			"type": "shell",
+			"command": "npm.cmd run build",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-ocr-cli",
+			"type": "shell",
+			"command": "npm.cmd run ocr",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-persist",
+			"type": "shell",
+			"command": "npm.cmd run build",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-persist",
+			"type": "shell",
+			"command": "npm.cmd run persist",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-persist-2",
+			"type": "shell",
+			"command": "npm.cmd run build",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-persist-2",
+			"type": "shell",
+			"command": "npm.cmd run persist",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-process-file",
+			"type": "shell",
+			"command": "npm.cmd run build",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-process-file",
+			"type": "shell",
+			"command": "npm.cmd run process-file -- candidate_pack/05_TEST_DATASET/whatsapp_inbox/facture_plombipro_F2026-0433.pdf",
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }

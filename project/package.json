@@ -8,6 +8,13 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "dev": "ts-node src/main.ts",
+    "demo": "ts-node src/demo.ts",
+    "ocr": "ts-node src/cli/ocr.ts",
+    "classify": "ts-node src/cli/classify.ts",
+    "extract": "ts-node src/cli/extract.ts",
+    "process": "ts-node src/cli/process.ts",
+    "persist": "ts-node src/cli/persist.ts",
+    "process-file": "ts-node src/cli/process-file.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
