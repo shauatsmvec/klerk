@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Klerk Test Frontend</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 2rem;
+        background: #f7f9fc;
+        color: #1f2937;
+      }
+      .card {
+        max-width: 700px;
+        margin: auto;
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      }
+      button {
+        margin-top: 1rem;
+        padding: 0.75rem 1rem;
+        border: none;
+        border-radius: 8px;
+        background: #2563eb;
+        color: white;
+        cursor: pointer;
+      }
+      pre {
+        background: #111827;
+        color: #f9fafb;
+        padding: 1rem;
+        border-radius: 8px;
+        overflow-x: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Klerk Test Frontend</h1>
+      <p>Select a document to send to the processing API.</p>
+      <input type="file" id="fileInput" />
+      <button id="uploadButton">Upload and Process</button>
+      <pre id="result">Waiting for upload...</pre>
+    </div>
+
+    <script>
+      const uploadButton = document.getElementById('uploadButton');
+      const fileInput = document.getElementById('fileInput');
+      const result = document.getElementById('result');
+
+      uploadButton.addEventListener('click', async () => {
+        const file = fileInput.files[0];
+        if (!file) {
+          result.textContent = 'Please choose a file first.';
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        result.textContent = 'Uploading...';
+
+        try {
+          const response = await fetch('/api/documents/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const data = await response.json();
+          result.textContent = JSON.stringify(data, null, 2);
+        } catch (error) {
+          result.textContent = 'Upload failed: ' + error.message;
+        }
+      });
+    </script>
+  </body>
+</html>

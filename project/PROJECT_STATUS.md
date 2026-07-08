@@ -6,10 +6,12 @@ The Klerk MVP is now in a working early stage. The project has a TypeScript foun
 ## What is working
 - TypeScript project boots and builds successfully
 - OCR, classification, extraction, and orchestration services are implemented
+- Extraction logic now handles common French invoice labels more reliably
 - Documents can be processed from sample data and from files in the candidate dataset
 - Processed documents can be saved to Supabase
 - Saved documents can be retrieved from the database
 - Manual CLI commands exist for testing each stage
+- Dedicated regression test suite is added to verify French invoice formatting and text extraction (`tests/SupplierInvoiceExtractor.regression.test.ts`)
 - A simple HTTP API is running locally with health, readiness, and upload endpoints
 
 ## Current implementation highlights
@@ -55,3 +57,16 @@ The Klerk MVP is now in a working early stage. The project has a TypeScript foun
 2. Improve extraction quality for real-world documents
 3. Polish the project for recruiter presentation and deployment
 4. Expand the API with richer validation and response payloads
+
+## Latest update
+- Fixed a greedy regex quantifier bug in supplier name extraction by switching to a non-greedy matcher and adding more lookup boundaries (like `client`, `adresse`, etc.).
+- Created a robust regression test suite matching multiple French invoice labels, noisy OCR text segments, and fallback values.
+- Confirmed that the project builds successfully and the entire test suite passes.
+
+## Checkpoint Bookmark
+- **Status Date**: July 7, 2026
+- **Current Checkpoint**: Regression tests verified and build is fully functional.
+- **Where to Resume next time**:
+  1. Set up the Google Drive integration (Compta/Year/Month/DocumentType folder caching & upload).
+  2. Implement the Google Sheets accounting journal append.
+  3. Implement pg-boss queue infrastructure and simulated WhatsApp webhook handlers.

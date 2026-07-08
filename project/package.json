@@ -17,6 +17,8 @@
     "process-file": "ts-node src/cli/process-file.ts",
     "get-document": "ts-node src/cli/get-document.ts",
     "test:docs": "ts-node tests/DocumentService.test.ts",
+    "test:regression": "ts-node tests/SupplierInvoiceExtractor.regression.test.ts",
+    "test": "ts-node tests/DocumentService.test.ts && ts-node tests/SupplierInvoiceExtractor.regression.test.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {

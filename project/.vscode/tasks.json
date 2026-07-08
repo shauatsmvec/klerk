@@ -235,6 +235,223 @@
 			"command": "curl.exe http://localhost:3000/health",
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "build-frontend",
+			"type": "shell",
+			"command": "npm.cmd run build",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-frontend-server",
+			"type": "shell",
+			"command": "node dist/main.js",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "free-port-3000",
+			"type": "shell",
+			"command": "powershell -NoProfile -Command \"Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force }\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "free-port-3000",
+			"type": "shell",
+			"command": "cmd /c \"for /f \\\"tokens=5\\\" %a in ('netstat -ano ^| findstr :3000') do taskkill /F /PID %a\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "kill-node-processes",
+			"type": "shell",
+			"command": "taskkill /F /IM node.exe /T",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-frontend-server",
+			"type": "shell",
+			"command": "node dist/main.js",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-and-test",
+			"type": "shell",
+			"command": "npm.cmd run build && npm.cmd run test:docs",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-and-test",
+			"type": "shell",
+			"command": "npm.cmd run build",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "verify-build",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run build\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "verify-build",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run build\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-doc-tests",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-doc-tests",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "verify-extraction",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run build && npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "verify-build",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run build\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-doc-tests",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "verify-extraction",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run build\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "verify-build",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run build\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-doc-tests",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-doc-tests",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-doc-tests",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "debug-extractor",
+			"type": "shell",
+			"command": "node -e \"require('ts-node/register'); const { SupplierInvoiceExtractor } = require('./src/services/SupplierInvoiceExtractor'); const s = new SupplierInvoiceExtractor(); const text='Facture\\nFournisseur : PlombiPro\\nDate : 15/06/2026\\nÉchéance : 30/06/2026\\nMontant total TTC : 635,04 €'; const result = s.extract(text); console.log(JSON.stringify(result, null, 2));\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "debug-extractor",
+			"type": "shell",
+			"command": "cmd /c \"node -e \\\"require('ts-node/register'); const { SupplierInvoiceExtractor } = require('./src/services/SupplierInvoiceExtractor'); const s = new SupplierInvoiceExtractor(); const text='Facture\\\\nFournisseur : PlombiPro\\\\nDate : 15/06/2026\\\\nÉchéance : 30/06/2026\\\\nMontant total TTC : 635,04 €'; const result = s.extract(text); console.log(JSON.stringify(result, null, 2));\\\"\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "verify-extraction",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run build\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "verify-build",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run build\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-doc-tests",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-doc-tests",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-doc-tests",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-doc-tests",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-doc-tests",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-doc-tests",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-doc-tests",
+			"type": "shell",
+			"command": "cmd /c \"npm.cmd run test:docs\"",
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }
