@@ -119,27 +119,116 @@ app.post('/api/documents/upload', upload.single('file'), async (req: Request, re
   }
 });
 
+// Graph API Media download utility
+async function downloadMetaMedia(mediaId: string): Promise<Buffer> {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  if (!token) {
+    throw new Error('WHATSAPP_ACCESS_TOKEN environment variable is not configured');
+  }
+
+  // 1. Fetch metadata from Graph API to retrieve download URL
+  const metaUrl = `https://graph.facebook.com/v20.0/${mediaId}`;
+  const responseBody = await new Promise<string>((resolve, reject) => {
+    https.get(metaUrl, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => resolve(body));
+      res.on('error', err => reject(err));
+    }).on('error', err => reject(err));
+  });
+
+  const { url } = JSON.parse(responseBody);
+  if (!url) {
+    throw new Error(`Failed to retrieve download URL from Meta Graph API for media ID: ${mediaId}`);
+  }
+
+  // 2. Download raw file attachment binary
+  return new Promise<Buffer>((resolve, reject) => {
+    https.get(url, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }, (res) => {
+      if (res.statusCode !== 200) {
+        reject(new Error(`Failed to download Meta media file, status: ${res.statusCode}`));
+        return;
+      }
+      const chunks: Buffer[] = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => resolve(Buffer.concat(chunks)));
+      res.on('error', err => reject(err));
+    }).on('error', err => reject(err));
+  });
+}
+
+// Meta Handshake verification
+app.get('/api/webhooks/whatsapp', (req: Request, res: Response) => {
+  const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'klerk_verify_token';
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  if (mode && token) {
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      logger.info('WhatsApp webhook verified successfully');
+      return res.status(200).send(challenge);
+    } else {
+      logger.warn({ token }, 'WhatsApp webhook verification failed: Token mismatch');
+      return res.sendStatus(403);
+    }
+  }
+  return res.sendStatus(400);
+});
+
 app.post('/api/webhooks/whatsapp', async (req: Request, res: Response) => {
   try {
-    const { from, mediaUrl, mediaName } = req.body;
-    if (!mediaUrl || !mediaName) {
-      return res.status(400).json({ error: 'Missing mediaUrl or mediaName' });
-    }
+    let from = 'unknown';
+    let mediaName = 'whatsapp_document.pdf';
+    let fileBuffer: Buffer | null = null;
 
-    logger.info({ from, mediaUrl, mediaName }, 'Received simulated WhatsApp message webhook');
+    // Check if real Meta Webhook payload is present
+    if (req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {
+      const message = req.body.entry[0].changes[0].value.messages[0];
+      from = message.from || 'unknown';
 
-    let fileBuffer: Buffer;
-    try {
-      fileBuffer = await downloadFile(mediaUrl);
-    } catch (downloadError: any) {
-      logger.warn(
-        { err: downloadError.message, mediaUrl },
-        'Failed to download WhatsApp media. Falling back to structured dummy buffer.'
-      );
-      // Construct structured dummy content so OCR extraction can run successfully
-      fileBuffer = Buffer.from(
-        `Supplier: Sanitherm SA\nDocument date: 15/06/2026\nTotal TTC: 1246,80 €\n`
-      );
+      let mediaId: string | null = null;
+      if (message.type === 'document' && message.document) {
+        mediaId = message.document.id;
+        mediaName = message.document.filename || 'whatsapp_document.pdf';
+      } else if (message.type === 'image' && message.image) {
+        mediaId = message.image.id;
+        mediaName = 'whatsapp_image.jpg';
+      }
+
+      if (!mediaId) {
+        logger.info({ messageType: message.type }, 'Received non-media Meta WhatsApp event. Acknowledged.');
+        return res.sendStatus(200);
+      }
+
+      logger.info({ mediaId, mediaName, from }, 'Received real Meta WhatsApp webhook media event');
+      fileBuffer = await downloadMetaMedia(mediaId);
+    } else {
+      // Local simulator fallback
+      const { from: simFrom, mediaUrl, mediaName: simMediaName } = req.body;
+      if (!mediaUrl || !simMediaName) {
+        return res.status(400).json({ error: 'Missing mediaUrl or mediaName for simulation' });
+      }
+
+      from = simFrom || 'unknown';
+      mediaName = simMediaName;
+      logger.info({ from, mediaUrl, mediaName }, 'Received simulated WhatsApp message webhook');
+
+      try {
+        fileBuffer = await downloadFile(mediaUrl);
+      } catch (downloadError: any) {
+        logger.warn(
+          { err: downloadError.message, mediaUrl },
+          'Failed to download WhatsApp media. Falling back to structured dummy buffer.'
+        );
+        fileBuffer = Buffer.from(
+          `Supplier: Sanitherm SA\nDocument date: 15/06/2026\nTotal TTC: 1246,80 €\n`
+        );
+      }
     }
 
     const tmpDir = path.join(process.cwd(), 'uploads', 'tmp');
@@ -150,7 +239,7 @@ app.post('/api/webhooks/whatsapp', async (req: Request, res: Response) => {
     const jobId = await queueService.sendJob('document-processing', {
       filePath: tmpFilePath,
       originalName: mediaName,
-      from: from || 'unknown',
+      from,
     });
 
     return res.status(202).json({

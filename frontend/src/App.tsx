@@ -32,7 +32,7 @@ interface Document {
   createdAt: string;
 }
 
-const BACKEND_URL = 'http://localhost:3001';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
 export default function App() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -115,7 +115,7 @@ export default function App() {
         throw new Error('Upload failed');
       }
 
-      const result = await response.json();
+      await response.json();
       fetchDocuments(); // Refresh list — the new document will appear via polling
     } catch (err) {
       console.error(err);
