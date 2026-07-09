@@ -72,4 +72,9 @@ export class DocumentRepository implements IRepository<Document> {
     const result = await this.pool.query('SELECT * FROM documents WHERE sha256_hash = $1', [hash]);
     return result.rows[0] ? new Document(result.rows[0] as DocumentRecord) : null;
   }
+
+  public async findAll(): Promise<Document[]> {
+    const result = await this.pool.query('SELECT * FROM documents ORDER BY created_at DESC');
+    return result.rows.map(row => new Document(row as DocumentRecord));
+  }
 }

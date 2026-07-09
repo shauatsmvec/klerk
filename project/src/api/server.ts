@@ -16,6 +16,15 @@ const upload = multer({ storage: multer.memoryStorage() });
 const publicDir = path.join(process.cwd(), 'public');
 
 app.use(express.json());
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 app.use(express.static(publicDir));
 
 const documentService = new DocumentService();
@@ -166,6 +175,16 @@ app.get('/api/jobs/:id', async (req: Request, res: Response) => {
   } catch (error) {
     logger.error({ err: error, jobId: req.params.id }, 'Failed to check job status');
     return res.status(500).json({ error: 'Failed to check job status' });
+  }
+});
+
+app.get('/api/documents', async (req: Request, res: Response) => {
+  try {
+    const docs = await repository.findAll();
+    return res.json(docs);
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to fetch documents');
+    return res.status(500).json({ error: 'Failed to fetch documents' });
   }
 });
 
