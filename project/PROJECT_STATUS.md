@@ -70,7 +70,5 @@ The Klerk MVP is now in a working early stage. The project has a TypeScript foun
 
 ## Checkpoint Bookmark
 - **Status Date**: July 9, 2026
-- **Current Checkpoint**: pg-boss background job queue and WhatsApp simulation webhook are fully implemented and verified end-to-end.
-- **Where to Resume next time**:
-  1. Prepare application presentation materials and README documentation polish (Day 6).
-  2. Configure deployment options and final verification.
+- **Current Checkpoint**: All project milestones (Days 1-6) completed. Presentation README, Dockerfile, docker-compose, and all testing suites are fully verified and passing.
+- **Status**: The Klerk AI document processing MVP is fully complete and ready for recruitment presentation.
