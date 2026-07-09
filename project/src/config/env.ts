@@ -19,6 +19,10 @@ const envSchema = z.object({
     (val) => val === 'true' || val === true || val === '1',
     z.boolean()
   ).optional().default(true),
+  PORT: z.preprocess(
+    (val) => val ? parseInt(String(val), 10) : 3001,
+    z.number()
+  ).optional().default(3001),
 });
 
 export const env = envSchema.parse(process.env);

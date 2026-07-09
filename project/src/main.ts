@@ -6,7 +6,7 @@ import { startServer } from './api/server';
 async function main(): Promise<void> {
   logger.info({ databaseUrlConfigured: Boolean(env.DATABASE_URL) }, 'Klerk bootstrapped');
   logger.info('Day 1 foundation is ready');
-  await startServer();
+  await startServer(env.PORT);
 }
 
 main().catch((error) => {

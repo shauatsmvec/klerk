@@ -32,7 +32,7 @@ interface Document {
   createdAt: string;
 }
 
-const BACKEND_URL = 'http://localhost:3000';
+const BACKEND_URL = 'http://localhost:3001';
 
 export default function App() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -198,7 +198,7 @@ export default function App() {
         <div className="status-badges">
           <div className="status-badge">
             <span className="status-dot"></span>
-            Backend: Connected (Port 3000)
+            Backend: Connected (Port 3001)
           </div>
           <div className="status-badge">
             <Database size={16} />
