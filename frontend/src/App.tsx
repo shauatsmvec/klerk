@@ -116,12 +116,7 @@ export default function App() {
       }
 
       const result = await response.json();
-      fetchDocuments(); // Refresh list
-      
-      // Select the uploaded document to show details
-      if (result.document) {
-        setSelectedDoc(result.document);
-      }
+      fetchDocuments(); // Refresh list — the new document will appear via polling
     } catch (err) {
       console.error(err);
       alert('Failed to upload and process document.');

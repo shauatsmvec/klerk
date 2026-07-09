@@ -49,8 +49,8 @@ function downloadFile(url: string): Promise<Buffer> {
   });
 }
 
-// Background Worker registration
-queueService.registerWorker('document-processing', async (jobData: { filePath: string; originalName: string }) => {
+// Background Worker handler (registered after pg-boss starts)
+async function documentWorkerHandler(jobData: { filePath: string; originalName: string }) {
   logger.info({ filePath: jobData.filePath }, 'Background worker processing document');
   
   if (!fs.existsSync(jobData.filePath)) {
@@ -72,7 +72,7 @@ queueService.registerWorker('document-processing', async (jobData: { filePath: s
       logger.warn({ err: cleanupErr }, 'Failed to clean up temporary file');
     }
   }
-});
+}
 
 // SIGTERM hook for clean stop
 process.on('SIGTERM', async () => {
@@ -188,8 +188,9 @@ app.get('/api/documents', async (req: Request, res: Response) => {
   }
 });
 
-export async function startServer(port = 3000): Promise<void> {
+export async function startServer(port = 3001): Promise<void> {
   await queueService.start();
+  await queueService.registerWorker('document-processing', documentWorkerHandler);
   app.listen(port, () => {
     logger.info({ port }, 'Klerk API listening');
   });

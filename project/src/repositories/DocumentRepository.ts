@@ -40,6 +40,10 @@ export class DocumentRepository implements IRepository<Document> {
       RETURNING *;
     `;
 
+    // PostgreSQL rejects null bytes (\x00) in text columns
+    const sanitize = (val: string | null): string | null =>
+      val ? val.replace(/\x00/g, '') : val;
+
     const values = [
       document.id,
       document.originalFilename,
@@ -47,12 +51,12 @@ export class DocumentRepository implements IRepository<Document> {
       document.sha256Hash,
       document.documentType,
       document.status,
-      document.ocrText,
-      JSON.stringify(document.extractionData),
-      document.supplierName,
+      sanitize(document.ocrText),
+      sanitize(JSON.stringify(document.extractionData)),
+      sanitize(document.supplierName),
       document.documentDate,
       document.dueDate,
-      document.totalTtc,
+      sanitize(document.totalTtc),
       document.driveFileId,
       document.driveWebViewLink,
       document.createdAt,
