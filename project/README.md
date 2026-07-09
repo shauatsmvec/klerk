@@ -149,23 +149,39 @@ In `.env`, you can toggle services between Mock and Real mode:
 
 ## 🚀 Running the App
 
-### Development Mode (Express API + pg-boss Worker)
+The project is structured as a monorepo split:
+* **Backend API & background worker (`/project`)**: Listens on Port `3001`.
+* **Frontend React Dashboard (`/frontend`)**: Listens on Port `5173`.
+
+### 1. Running Locally (Development Mode)
+
+**Terminal 1 — Backend**:
 ```bash
+cd project
 npm run dev
 ```
 
-### Production Build
+**Terminal 2 — Frontend**:
 ```bash
-npm run build
-npm start
+cd frontend
+npm run dev
 ```
+Navigate to `http://localhost:5173` in your browser to access the premium Drag-and-Drop dashboard!
 
-### Running with Docker & Compose
-We provide containerized setup profiles to run the application instantly:
+### 2. Containerized Docker Run
+We provide a containerized setup to launch the application:
 ```bash
-# Build and run the app service
+cd project
 docker-compose up --build
 ```
+
+---
+
+## ☁️ Cloud Deployment & WhatsApp Setup
+
+We provide production configurations and guides in the root documentation folders:
+* **[Production Cloud Deployment Guide](file:///c:/Users/lenovo/Desktop/free_lancing/klerk/documentation/deployment/production_deployment.md)**: Deployment steps for Render and Railway.
+* **[WhatsApp API Token Setup Guide](file:///c:/Users/lenovo/Desktop/free_lancing/klerk/documentation/usage_guide/whatsapp_tokens_setup.md)**: Setup guide for custom verification and access tokens.
 
 ---
 
@@ -176,19 +192,21 @@ We provide three comprehensive testing suites to verify processing and extractio
 ### 1. French Extraction Regex Regression Tests
 Matches realistic French billing label layouts, messy spacing boundaries, and decimal formatting:
 ```bash
+cd project
 npm run test:regression
 ```
 
 ### 2. Google OAuth Drive & Sheets Integration Tests
-Verifies real connection linkages, fallback flat folder creation, and sheet transaction row logs:
+Verifies real connection linkages, folder nesting creation, and spreadsheet transaction log rows:
 ```bash
-# Verify Google connection (ensure GOOGLE_DRIVE_MOCK=false)
+cd project
 npx ts-node tests/GoogleIntegration.test.ts
 ```
 
 ### 3. WhatsApp Queue Ingestion Integration Tests
 Starts the Express server, fires a WhatsApp message webhook, enqueues the job into `pg-boss`, processes it in the background worker, and asserts database persistence:
 ```bash
-# Run background workers and webhook tests end-to-end
+cd project
 npx ts-node tests/QueueSimulation.test.ts
 ```
+

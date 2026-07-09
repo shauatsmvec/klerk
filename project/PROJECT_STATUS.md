@@ -60,15 +60,13 @@ The Klerk MVP is now in a working early stage. The project has a TypeScript foun
 2. Create simulated WhatsApp webhook handlers.
 3. Polish the project for recruiter presentation and deployment (Day 6).
 
-## Latest update
-- Migrated Google Drive & Sheets integration from legacy Service Accounts to a modern OAuth 2.0 User Flow to resolve Service Account storage quota limits (403 storageQuotaExceeded).
-- Configured restricted `drive.file` and `spreadsheets` scopes to satisfy Google API security requirements.
-- Implemented a robust fallback mechanism in `GoogleDriveService`: if directory nesting fails (due to account or API restrictions throwing `parentNotAFolder`), the system automatically uploads the file flatly with a path-based prefix (e.g. `2026_06_invoice_filename.pdf`) directly to the root project folder.
-- Verified the complete OAuth integration end-to-end; verified that integration tests successfully pass in REAL mode, creating real files on Google Drive and appending real transaction rows to the Google Spreadsheet.
-- *Note on folder nesting*: For now, the application uses the flat-upload fallback strategy to support Google's unverified API testing sandbox. Once the entire application is completed, the user will transition to **Option C** (publishing the GCP app to Production in the Google Cloud Console) to automatically enable the full programmatical folder nesting structure (`Compta/Year/Month/DocumentType`).
-- **Background Queue & Webhooks**: Installed and configured `pg-boss` utilizing Supabase's transaction pooler. Implemented the simulated WhatsApp webhook and polling APIs. Verified the entire asynchronous flow end-to-end via automated integration test.
+- **GCP Production Consent Screen**: Successfully moved the GCP OAuth Consent Screen to Production in the Google Cloud Console. This enabled programmatic creation of nested directories (Compta / Year / Month / Type) inside `klerk-service` (verified via integration tests with full `drive` scope permissions).
+- **Vite React Frontend Dashboard**: Implemented a modern dark-themed React client under `frontend/` running on Port `5173`. Connected client to the API on Port `3001` with dynamic routing variables. Fully verified file uploads, data table registry display, and processing workers status tracking.
+- **WhatsApp Webhook Expansion**: Enhanced `server.ts` to support dual-mode (simulated + real Meta WhatsApp API JSON payloads with GET verification handshake and Graph API file download tokens).
+- **Cloud Deployment Guides**: Added step-by-step documentation for deploying the monorepo to Render and Railway, alongside token-generation instructions in `documentation/`.
 
 ## Checkpoint Bookmark
 - **Status Date**: July 9, 2026
-- **Current Checkpoint**: All project milestones (Days 1-6) completed. Presentation README, Dockerfile, docker-compose, and all testing suites are fully verified and passing.
-- **Status**: The Klerk AI document processing MVP is fully complete and ready for recruitment presentation.
+- **Current Checkpoint**: Production deployment configurations, Meta webhook handshakes, folder nesting, and React client dashboard complete and build-verified.
+- **Status**: Klerk is 100% complete, fully verified, and ready for production cloud release.
+
