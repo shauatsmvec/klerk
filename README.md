@@ -125,6 +125,17 @@ erDiagram
 
 ---
 
+## 📂 Repository File Layout
+
+Here are the key implementation files in this repository:
+* 🛠️ **Task Queue**: [project/src/queue/QueueService.ts](project/src/queue/QueueService.ts) manages background job dispatching via `pg-boss`.
+* ⚡ **Express Server**: [project/src/api/server.ts](project/src/api/server.ts) exposes webhook ingestion and job polling APIs.
+* 📦 **Containerization**: [project/Dockerfile](project/Dockerfile) & [project/docker-compose.yml](project/docker-compose.yml) configure build and deployment.
+* 📑 **Extraction Logic**: [project/src/services/SupplierInvoiceExtractor.ts](project/src/services/SupplierInvoiceExtractor.ts) handles natural data parsing.
+* 🔗 **Google Integration**: [project/src/services/GoogleDriveService.ts](project/src/services/GoogleDriveService.ts) uploads files with fallback self-healing.
+
+---
+
 ## 🛠️ Getting Started
 
 ### Prerequisites
@@ -134,20 +145,26 @@ erDiagram
 
 ### Installation
 1. Clone this repository.
-2. Copy `.env.example` to `.env` and fill in the required values.
-3. Install dependencies:
+2. Navigate to the project folder:
+   ```bash
+   cd project
+   ```
+3. Copy `.env.example` to `.env` and fill in the required values.
+4. Install dependencies:
    ```bash
    npm install
    ```
 
 ### Mode Toggles
 In `.env`, you can toggle services between Mock and Real mode:
-* **Google Integration Mock**: Set to `true` to use simulated local folder creation and logs, or `false` to connect to your real Google Drive & Sheets using OAuth 2.0.
+* **Google Integration Mock**: Set `GOOGLE_DRIVE_MOCK=true` to use simulated local folder creation and logs, or `false` to connect to your real Google Drive & Sheets using OAuth 2.0.
 * **OCR fallback**: Extractor automatically provides structured fallback regex parser logic if no external OCR is bound.
 
 ---
 
 ## 🚀 Running the App
+
+Run all commands from the `project/` directory:
 
 ### Development Mode (Express API + pg-boss Worker)
 ```bash
@@ -163,7 +180,7 @@ npm start
 ### Running with Docker & Compose
 We provide containerized setup profiles to run the application instantly:
 ```bash
-# Build and run the app service
+# Run the app containerized
 docker-compose up --build
 ```
 
@@ -171,7 +188,7 @@ docker-compose up --build
 
 ## 🧪 Testing and Verification
 
-We provide three comprehensive testing suites to verify processing and extraction accuracy:
+We provide three comprehensive testing suites to verify processing and extraction accuracy (run from the `project/` directory):
 
 ### 1. French Extraction Regex Regression Tests
 Matches realistic French billing label layouts, messy spacing boundaries, and decimal formatting:
