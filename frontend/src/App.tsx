@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Smartphone,
   Database,
@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   ExternalLink
 } from 'lucide-react';
+import { useScroll, useTransform, motion } from 'framer-motion';
 
 type ModalType = 
   | 'privacy' 
@@ -23,6 +24,103 @@ type ModalType =
   | 'schema_migrations' 
   | null;
 
+// Container Scroll Animation Component
+export const ContainerScroll = ({
+  titleComponent,
+  children,
+}: {
+  titleComponent: React.ReactNode;
+  children: React.ReactNode;
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start end", "end start"]
+  });
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
+
+  const scaleDimensions = () => {
+    return isMobile ? [0.8, 0.95] : [1.05, 1];
+  };
+
+  const rotate = useTransform(scrollYProgress, [0, 0.25], [18, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.25], scaleDimensions());
+  const translate = useTransform(scrollYProgress, [0, 0.25], [0, -40]);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        padding: isMobile ? "20px 10px" : "60px 20px",
+        width: "100%",
+        overflow: "hidden"
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          position: "relative",
+          perspective: "1000px",
+        }}
+      >
+        <motion.div
+          style={{
+            translateY: translate,
+          }}
+        >
+          {titleComponent}
+        </motion.div>
+        
+        <motion.div
+          style={{
+            rotateX: rotate,
+            scale,
+            boxShadow:
+              "0 0 #0000004d, 0 9px 20px #0000004a, 0 37px 37px #00000042, 0 84px 50px #00000026, 0 149px 60px #0000000a, 0 233px 65px #00000003",
+            maxWidth: "840px",
+            marginTop: "16px",
+            marginLeft: "auto",
+            marginRight: "auto",
+            width: "100%",
+            border: "4px solid #6C6C6C",
+            padding: isMobile ? "8px" : "24px",
+            backgroundColor: "#222222",
+            borderRadius: "30px",
+          }}
+        >
+          <div 
+            style={{
+              height: "100%",
+              width: "100%",
+              overflow: "hidden",
+              borderRadius: "16px",
+              backgroundColor: "var(--colors-canvas)",
+              padding: isMobile ? "12px" : "24px"
+            }}
+          >
+            {children}
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
@@ -33,8 +131,13 @@ export default function App() {
 
   return (
     <div>
+      {/* Active Development Banner */}
+      <div style={{ backgroundColor: 'var(--colors-primary)', color: '#ffffff', fontSize: '12px', fontWeight: 600, padding: '10px 24px', textAlign: 'center', letterSpacing: '0.03em', width: '100%', position: 'fixed', top: 0, left: 0, zIndex: 1001 }}>
+        🚀 DEVELOPMENT PORTFOLIO SHOWCASE: This is an active sample application showcasing document parsing architecture.
+      </div>
+
       {/* 1. Global Navigation */}
-      <nav className="global-nav">
+      <nav className="global-nav" style={{ top: '34px' }}>
         <div className="global-nav-container">
           <a href="#" className="global-nav-logo">
             <span></span> Klerk
@@ -49,60 +152,70 @@ export default function App() {
       </nav>
 
       {/* 2. Frosted Sub Navigation */}
-      <div className="sub-nav-frosted">
+      <div className="sub-nav-frosted" style={{ top: '78px' }}>
         <div className="sub-nav-container">
           <a href="#" className="sub-nav-title">Klerk AI</a>
           <div className="sub-nav-actions">
             <span className="sub-nav-link" style={{ cursor: 'default', color: '#008a00', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ width: '6px', height: '6px', backgroundColor: '#008a00', borderRadius: '50%' }}></span> Live
+              <span style={{ width: '6px', height: '6px', backgroundColor: '#008a00', borderRadius: '50%' }}></span> Showcase Live
             </span>
           </div>
         </div>
       </div>
 
       {/* 3. Page Tiles Stack */}
-      <div className="page-container">
+      <div className="page-container" style={{ marginTop: '130px' }}>
 
-        {/* Tile 1: Hero Page (Light Canvas) */}
-        <section id="overview" className="product-tile product-tile-light">
-          <h1 className="tile-headline">AI Document Ingestion.</h1>
-          <p className="tile-subcopy">Document logging at the speed of thought.</p>
-          <p className="tile-tagline">Now featuring WhatsApp Multi-Tenancy & Folder Segregation</p>
+        {/* Tile 1: Hero Page (Light Canvas) featuring the 3D Scroll Container Animation */}
+        <section id="overview" className="product-tile product-tile-light" style={{ padding: '48px 24px' }}>
           
-          <div className="tile-ctas">
-            <a href="#whatsapp" className="button-primary">Explore WhatsApp Console</a>
-            <a href="https://github.com/shauatsmvec/klerk" target="_blank" rel="noreferrer" className="button-secondary-pill">View Repository</a>
-          </div>
-
-          <div className="product-image-container">
-            <div className="product-image-shadow" style={{ width: '100%', maxWidth: '840px', backgroundColor: '#fafafc', padding: '24px' }}>
-              <div style={{ textAlign: 'left', borderBottom: '1px solid #e0e0e0', paddingBottom: '16px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontSize: '12px', textTransform: 'uppercase', color: '#7a7a7a', fontWeight: 600 }}>Extracted Invoice</span>
-                  <h3 style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: 600 }}>facture_locabenne_2026.pdf</h3>
+          <ContainerScroll
+            titleComponent={
+              <div style={{ textAlign: 'center' }}>
+                <h1 className="tile-headline" style={{ margin: '0 auto 8px auto' }}>
+                  AI Document Ingestion.
+                </h1>
+                <p className="tile-subcopy" style={{ marginBottom: '24px' }}>
+                  Document logging at the speed of thought.
+                </p>
+                <p className="tile-tagline" style={{ marginBottom: '32px' }}>
+                  Now featuring WhatsApp Multi-Tenancy & Folder Segregation
+                </p>
+                <div className="tile-ctas" style={{ marginBottom: '16px' }}>
+                  <a href="#whatsapp" className="button-primary">Explore WhatsApp Console</a>
+                  <a href="https://github.com/shauatsmvec/klerk" target="_blank" rel="noreferrer" className="button-secondary-pill">View Repository</a>
                 </div>
-                <span className="status-pill processed">Processed & Shared</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', textAlign: 'left' }}>
-                <div>
-                  <span style={{ fontSize: '12px', color: '#7a7a7a' }}>Supplier</span>
-                  <p style={{ margin: '4px 0 0 0', fontWeight: 600 }}>Locabenne SA</p>
-                </div>
-                <div>
-                  <span style={{ fontSize: '12px', color: '#7a7a7a' }}>Date</span>
-                  <p style={{ margin: '4px 0 0 0', fontWeight: 600 }}>10/07/2026</p>
-                </div>
-                <div>
-                  <span style={{ fontSize: '12px', color: '#7a7a7a' }}>Total Amount</span>
-                  <p style={{ margin: '4px 0 0 0', fontWeight: 600, color: 'var(--colors-primary)' }}>1,240.00 €</p>
-                </div>
-                <div>
-                  <span style={{ fontSize: '12px', color: '#7a7a7a' }}>Uploader</span>
-                  <p style={{ margin: '4px 0 0 0', fontWeight: 600 }}>martin_finance@gmail.com</p>
-                </div>
+            }
+          >
+            {/* The child card element tilts back dynamically in 3D space on scroll */}
+            <div style={{ textAlign: 'left', borderBottom: '1px solid #e0e0e0', paddingBottom: '16px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#7a7a7a', fontWeight: 600 }}>Extracted Invoice</span>
+                <h3 style={{ margin: '4px 0 0 0', fontSize: '20px', fontWeight: 600, color: 'var(--colors-ink)' }}>facture_locabenne_2026.pdf</h3>
+              </div>
+              <span className="status-pill processed">Processed & Shared</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '20px', textAlign: 'left' }}>
+              <div>
+                <span style={{ fontSize: '11px', color: '#7a7a7a' }}>Supplier</span>
+                <p style={{ margin: '4px 0 0 0', fontWeight: 600, color: 'var(--colors-ink)' }}>Locabenne SA</p>
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', color: '#7a7a7a' }}>Date</span>
+                <p style={{ margin: '4px 0 0 0', fontWeight: 600, color: 'var(--colors-ink)' }}>10/07/2026</p>
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', color: '#7a7a7a' }}>Total Amount</span>
+                <p style={{ margin: '4px 0 0 0', fontWeight: 600, color: 'var(--colors-primary)' }}>1,240.00 €</p>
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', color: '#7a7a7a' }}>Uploader</span>
+                <p style={{ margin: '4px 0 0 0', fontWeight: 600, color: 'var(--colors-ink)' }}>martin_finance@gmail.com</p>
               </div>
             </div>
-          </div>
+          </ContainerScroll>
+          
         </section>
 
         {/* Tile 2: WhatsApp Integration Hero (Dark Canvas) - Side-by-side layout */}
