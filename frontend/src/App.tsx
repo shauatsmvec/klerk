@@ -7,12 +7,25 @@ import {
   ShieldCheck
 } from 'lucide-react';
 
-type ModalType = 'privacy' | 'terms' | 'legal' | null;
+type ModalType = 
+  | 'privacy' 
+  | 'terms' 
+  | 'legal' 
+  | 'ingestion_webhooks' 
+  | 'upload_services' 
+  | 'pg_boss_queues' 
+  | 'google_drive_api' 
+  | 'google_sheets_sync' 
+  | 'oauth_scopes' 
+  | 'postgresql_database' 
+  | 'row_level_security' 
+  | 'schema_migrations' 
+  | null;
 
 export default function App() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
-  const handleLegalClick = (e: React.MouseEvent, type: ModalType) => {
+  const handleDocClick = (e: React.MouseEvent, type: ModalType) => {
     e.preventDefault();
     setActiveModal(type);
   };
@@ -199,6 +212,15 @@ export default function App() {
                 {activeModal === 'privacy' && 'Privacy Policy'}
                 {activeModal === 'terms' && 'Terms of Use'}
                 {activeModal === 'legal' && 'Legal Notice'}
+                {activeModal === 'ingestion_webhooks' && 'API: Ingestion Webhooks'}
+                {activeModal === 'upload_services' && 'API: Document Upload Services'}
+                {activeModal === 'pg_boss_queues' && 'Architecture: pg-boss Tasks'}
+                {activeModal === 'google_drive_api' && 'GCP: Google Drive Storage'}
+                {activeModal === 'google_sheets_sync' && 'GCP: Google Sheets Ledger'}
+                {activeModal === 'oauth_scopes' && 'GCP: OAuth 2.0 Credentials'}
+                {activeModal === 'postgresql_database' && 'Supabase: SQL Database'}
+                {activeModal === 'row_level_security' && 'Supabase: Row Level Security'}
+                {activeModal === 'schema_migrations' && 'Supabase: SQL Schema Migrations'}
               </h2>
               <button className="close-btn" onClick={() => setActiveModal(null)}>Close</button>
             </div>
@@ -258,6 +280,103 @@ export default function App() {
                     <p>For any system issues, questions regarding OCR parsing quality, or data removal requests, please open an issue in the Klerk GitHub repository.</p>
                   </div>
                 )}
+
+                {activeModal === 'ingestion_webhooks' && (
+                  <div>
+                    <p>Klerk listens for incoming messages from Meta's servers on the endpoint <code>POST /api/webhooks/whatsapp</code>.</p>
+                    <h3>Webhook Lifecycle</h3>
+                    <ul>
+                      <li><strong>GET Verification Handshake</strong>: Responds to Meta verification challenges using the configured <code>WHATSAPP_VERIFY_TOKEN</code>.</li>
+                      <li><strong>User Registry Check</strong>: Verifies if the incoming phone number exists in our database. Unregistered users are prompted to Register first.</li>
+                      <li><strong>Pending State Hold</strong>: Holds new documents in a temporary <code>pending_documents</code> table to support user verification loops before final commit.</li>
+                    </ul>
+                  </div>
+                )}
+
+                {activeModal === 'upload_services' && (
+                  <div>
+                    <p>The direct upload service endpoint is <code>POST /api/documents/upload</code>.</p>
+                    <h3>Service Mechanics</h3>
+                    <ul>
+                      <li><strong>MIME Check</strong>: Rejects files that do not match <code>application/pdf</code> or standard image file formats.</li>
+                      <li><strong>SHA-256 Deduplication</strong>: Rejects files if their unique SHA-256 hash already matches an entry in the database.</li>
+                      <li><strong>Extraction Flow</strong>: Runs asynchronous text OCR, LLM text classification, and outputs structured extraction metadata mapping.</li>
+                    </ul>
+                  </div>
+                )}
+
+                {activeModal === 'pg_boss_queues' && (
+                  <div>
+                    <p>Klerk separates request handling and processing queues using <code>pg-boss</code>.</p>
+                    <h3>Asynchronous Queue Flow</h3>
+                    <ul>
+                      <li><strong>Job Dispatch</strong>: WhatsApp webhook downloads file media and enqueues it to the <code>document-processing</code> queue table.</li>
+                      <li><strong>Background Worker</strong>: An independent worker thread polls, locks, and processes the job in the background, avoiding timeout errors.</li>
+                    </ul>
+                  </div>
+                )}
+
+                {activeModal === 'google_drive_api' && (
+                  <div>
+                    <p>Klerk isolates tenant directories dynamically using the Google Drive API.</p>
+                    <h3>Directory Structure</h3>
+                    <ul>
+                      <li><strong>Segregated Paths</strong>: Saves documents to <code>Compta/[email]/[Year]/[Month]/[DocType]</code>.</li>
+                      <li><strong>Self-Healing Fallback</strong>: If directory creation fails, documents default to the root <code>klerk_service</code> folder, prefixed with the user's Gmail to maintain layout isolation.</li>
+                    </ul>
+                  </div>
+                )}
+
+                {activeModal === 'google_sheets_sync' && (
+                  <div>
+                    <p>Every processed transaction appends a log entry to a global Sheets table.</p>
+                    <h3>Ledger Columns</h3>
+                    <p>Records: <code>Date</code>, <code>Supplier</code>, <code>Document Type</code>, <code>Amount TTC</code>, <code>Drive View Link</code>, <code>Status</code>, and the registered <code>Uploader</code> email address.</p>
+                  </div>
+                )}
+
+                {activeModal === 'oauth_scopes' && (
+                  <div>
+                    <p>Google workspace integration relies on OAuth 2.0 Web Client scopes:</p>
+                    <ul>
+                      <li><code>https://www.googleapis.com/auth/drive.file</code> - Allows folder creation and file uploads inside Klerk folders.</li>
+                      <li><code>https://www.googleapis.com/auth/spreadsheets</code> - Allows appending rows and updating cells in your log spreadsheet.</li>
+                    </ul>
+                  </div>
+                )}
+
+                {activeModal === 'postgresql_database' && (
+                  <div>
+                    <p>Our metadata registry is hosted on Supabase (PostgreSQL).</p>
+                    <h3>Database Tables</h3>
+                    <ul>
+                      <li><code>users</code>: Links phone numbers to Gmail addresses.</li>
+                      <li><code>documents</code>: Stores filenames, hashes, OCR text, and metadata.</li>
+                      <li><code>conversation_states</code>: Tracks active chat registration sessions.</li>
+                    </ul>
+                  </div>
+                )}
+
+                {activeModal === 'row_level_security' && (
+                  <div>
+                    <p>Row Level Security (RLS) policies are active on Supabase tables.</p>
+                    <h3>Database Rules</h3>
+                    <ul>
+                      <li><strong>Read Isolation</strong>: Users can only query files linked to their phone number.</li>
+                      <li><strong>Developer Override</strong>: Dashboards bypass policies using service role keys.</li>
+                    </ul>
+                  </div>
+                )}
+
+                {activeModal === 'schema_migrations' && (
+                  <div>
+                    <p>Schema changes are tracked via database migrations:</p>
+                    <ul>
+                      <li><code>20260707_create_documents_table.sql</code>: Sets up the base invoice registry.</li>
+                      <li><code>20260710_create_multitenancy_tables.sql</code>: Configures multi-tenant relationships and user tracking schemas.</li>
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -279,25 +398,25 @@ export default function App() {
           <div className="footer-column">
             <h3>API Documentation</h3>
             <div className="footer-links">
-              <a href="https://github.com/shauatsmvec/klerk" target="_blank" rel="noreferrer" className="footer-link">Ingestion Webhooks</a>
-              <a href="https://github.com/shauatsmvec/klerk" target="_blank" rel="noreferrer" className="footer-link">Upload Services</a>
-              <a href="https://github.com/shauatsmvec/klerk" target="_blank" rel="noreferrer" className="footer-link">pg-boss Queues</a>
+              <span onClick={(e) => handleDocClick(e, 'ingestion_webhooks')} className="footer-link" style={{ cursor: 'pointer' }}>Ingestion Webhooks</span>
+              <span onClick={(e) => handleDocClick(e, 'upload_services')} className="footer-link" style={{ cursor: 'pointer' }}>Upload Services</span>
+              <span onClick={(e) => handleDocClick(e, 'pg_boss_queues')} className="footer-link" style={{ cursor: 'pointer' }}>pg-boss Queues</span>
             </div>
           </div>
           <div className="footer-column">
             <h3>GCP Setup</h3>
             <div className="footer-links">
-              <a href="https://github.com/shauatsmvec/klerk" target="_blank" rel="noreferrer" className="footer-link">Google Drive API</a>
-              <a href="https://github.com/shauatsmvec/klerk" target="_blank" rel="noreferrer" className="footer-link">Google Sheets Sync</a>
-              <a href="https://github.com/shauatsmvec/klerk" target="_blank" rel="noreferrer" className="footer-link">OAuth Scopes</a>
+              <span onClick={(e) => handleDocClick(e, 'google_drive_api')} className="footer-link" style={{ cursor: 'pointer' }}>Google Drive API</span>
+              <span onClick={(e) => handleDocClick(e, 'google_sheets_sync')} className="footer-link" style={{ cursor: 'pointer' }}>Google Sheets Sync</span>
+              <span onClick={(e) => handleDocClick(e, 'oauth_scopes')} className="footer-link" style={{ cursor: 'pointer' }}>OAuth Scopes</span>
             </div>
           </div>
           <div className="footer-column">
             <h3>Supabase</h3>
             <div className="footer-links">
-              <a href="https://github.com/shauatsmvec/klerk" target="_blank" rel="noreferrer" className="footer-link">PostgreSQL Database</a>
-              <a href="https://github.com/shauatsmvec/klerk" target="_blank" rel="noreferrer" className="footer-link">Row Level Security</a>
-              <a href="https://github.com/shauatsmvec/klerk" target="_blank" rel="noreferrer" className="footer-link">Schema Migrations</a>
+              <span onClick={(e) => handleDocClick(e, 'postgresql_database')} className="footer-link" style={{ cursor: 'pointer' }}>PostgreSQL Database</span>
+              <span onClick={(e) => handleDocClick(e, 'row_level_security')} className="footer-link" style={{ cursor: 'pointer' }}>Row Level Security</span>
+              <span onClick={(e) => handleDocClick(e, 'schema_migrations')} className="footer-link" style={{ cursor: 'pointer' }}>Schema Migrations</span>
             </div>
           </div>
         </div>
@@ -305,9 +424,9 @@ export default function App() {
         <div className="footer-legal">
           <p style={{ margin: 0 }}>Copyright © 2026 Klerk Inc. All rights reserved. Deployed via Render and Supabase.</p>
           <div className="footer-legal-links">
-            <span onClick={(e) => handleLegalClick(e, 'privacy')} className="footer-legal-link">Privacy Policy</span>
-            <span onClick={(e) => handleLegalClick(e, 'terms')} className="footer-legal-link">Terms of Use</span>
-            <span onClick={(e) => handleLegalClick(e, 'legal')} className="footer-legal-link">Legal Notice</span>
+            <span onClick={(e) => handleDocClick(e, 'privacy')} className="footer-legal-link">Privacy Policy</span>
+            <span onClick={(e) => handleDocClick(e, 'terms')} className="footer-legal-link">Terms of Use</span>
+            <span onClick={(e) => handleDocClick(e, 'legal')} className="footer-legal-link">Legal Notice</span>
           </div>
         </div>
       </footer>
