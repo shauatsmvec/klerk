@@ -74,7 +74,8 @@ export class GoogleDriveService {
         'Failed to resolve nested folder path in Google Drive. Falling back to root project folder.'
       );
       parentFolderId = env.GOOGLE_DRIVE_FOLDER_ID || 'root';
-      targetFileName = `${year}_${month}_${docType}_${filename}`;
+      const emailPrefix = uploaderEmail ? `${uploaderEmail.replace(/[@.]/g, '_')}_` : '';
+      targetFileName = `${emailPrefix}${year}_${month}_${docType}_${filename}`;
     }
 
     try {
