@@ -90,6 +90,14 @@ app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
+app.get('/privacy', (_req: Request, res: Response) => {
+  res.send('<h1>Privacy Policy</h1><p>Klerk does not share or sell your data.</p>');
+});
+
+app.get('/terms', (_req: Request, res: Response) => {
+  res.send('<h1>Terms of Service</h1><p>Klerk MVP usage terms.</p>');
+});
+
 app.get('/ready', (_req: Request, res: Response) => {
   res.json({ ready: true });
 });
