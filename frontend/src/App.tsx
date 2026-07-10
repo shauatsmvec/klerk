@@ -5,9 +5,73 @@ import {
   FolderOpen,
   Server,
   ShieldCheck,
-  ExternalLink
+  ExternalLink,
+  MessageSquare,
+  UserCheck,
+  FileText,
+  CheckSquare,
+  Share2
 } from 'lucide-react';
 import { useScroll, useTransform, motion } from 'framer-motion';
+import RadialOrbitalTimeline from "./components/ui/radial-orbital-timeline";
+
+const whatsappWorkflowData = [
+  {
+    id: 1,
+    title: "1. Message Received",
+    date: "Step 1",
+    content: "System validates the incoming phone number. If unregistered, prompts to Register via WhatsApp chat state machine.",
+    category: "Security",
+    icon: MessageSquare,
+    relatedIds: [2],
+    status: "completed" as const,
+    energy: 100,
+  },
+  {
+    id: 2,
+    title: "2. Account Connected",
+    date: "Step 2",
+    content: "User submits their Gmail. The database links the WhatsApp number to their email and initializes dedicated folder storage.",
+    category: "Identity",
+    icon: UserCheck,
+    relatedIds: [1, 3],
+    status: "completed" as const,
+    energy: 95,
+  },
+  {
+    id: 3,
+    title: "3. Document Upload",
+    date: "Step 3",
+    content: "User uploads an invoice PDF or image. Klerk starts instant text OCR extraction and parses supplier details and total amounts.",
+    category: "Ingestion",
+    icon: FileText,
+    relatedIds: [2, 4],
+    status: "completed" as const,
+    energy: 90,
+  },
+  {
+    id: 4,
+    title: "4. User Confirmation",
+    date: "Step 4",
+    content: "Bot sends back a parsed details preview card on WhatsApp. Senders reply 'Yes' to log it, or 'No' to discard the transaction.",
+    category: "Verification",
+    icon: CheckSquare,
+    relatedIds: [3, 5],
+    status: "completed" as const,
+    energy: 85,
+  },
+  {
+    id: 5,
+    title: "5. Workspace Sync",
+    date: "Step 5",
+    content: "File is uploaded to the segregated Gmail folder on Google Drive. A transaction row is appended to Google Sheets and saved to Supabase.",
+    category: "Sync",
+    icon: Share2,
+    relatedIds: [4],
+    status: "completed" as const,
+    energy: 100,
+  },
+];
 
 type ModalType = 
   | 'privacy' 
@@ -219,7 +283,7 @@ export default function App() {
         </section>
 
         {/* Tile 2: WhatsApp Integration Hero (Dark Canvas) - Side-by-side layout */}
-        <section id="whatsapp" className="product-tile product-tile-dark">
+        <section id="whatsapp" className="product-tile product-tile-dark" style={{ padding: '80px 24px 64px 24px' }}>
           <div className="whatsapp-row-tile">
             
             {/* Left Column: Mobile phone message mockup */}
@@ -267,6 +331,14 @@ export default function App() {
               <p className="tile-tagline" style={{ color: 'var(--colors-primary-on-dark)', margin: 0 }}>Dynamic Gmail Registration & Segregation</p>
             </div>
 
+          </div>
+
+          {/* Timeline Animation for the WhatsApp Ingestion Workflow */}
+          <div style={{ width: '100%', maxWidth: '980px', marginTop: '64px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '48px' }}>
+            <h3 style={{ fontSize: '21px', fontWeight: 600, color: '#fff', marginBottom: '24px', letterSpacing: '-0.01em', textAlign: 'center' }}>
+              Interactive WhatsApp Ingestion Workflow
+            </h3>
+            <RadialOrbitalTimeline timelineData={whatsappWorkflowData} />
           </div>
         </section>
 
