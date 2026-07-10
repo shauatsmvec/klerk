@@ -31,11 +31,13 @@ export class DocumentRepository implements IRepository<Document> {
         total_ttc,
         drive_file_id,
         drive_web_view_link,
+        uploader_phone,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $16)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       ON CONFLICT (sha256_hash) DO UPDATE SET
         status = EXCLUDED.status,
+        uploader_phone = COALESCE(documents.uploader_phone, EXCLUDED.uploader_phone),
         updated_at = NOW()
       RETURNING *;
     `;
@@ -59,6 +61,7 @@ export class DocumentRepository implements IRepository<Document> {
       sanitize(document.totalTtc),
       document.driveFileId,
       document.driveWebViewLink,
+      document.uploaderPhone,
       document.createdAt,
       document.updatedAt,
     ];
@@ -75,6 +78,11 @@ export class DocumentRepository implements IRepository<Document> {
   public async findByHash(hash: string): Promise<Document | null> {
     const result = await this.pool.query('SELECT * FROM documents WHERE sha256_hash = $1', [hash]);
     return result.rows[0] ? new Document(result.rows[0] as DocumentRecord) : null;
+  }
+
+  public async findByUploader(phone: string): Promise<Document[]> {
+    const result = await this.pool.query('SELECT * FROM documents WHERE uploader_phone = $1 ORDER BY created_at DESC', [phone]);
+    return result.rows.map(row => new Document(row as DocumentRecord));
   }
 
   public async findAll(): Promise<Document[]> {

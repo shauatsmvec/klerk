@@ -12,6 +12,7 @@ import { buildUploadResponse } from './response';
 import { QueueService } from '../queue/QueueService';
 import { PendingDocumentRepository } from '../repositories/PendingDocumentRepository';
 import { WhatsAppService } from '../services/WhatsAppService';
+import { UserRepository } from '../repositories/UserRepository';
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -35,6 +36,7 @@ const duplicateService = new DuplicateDetectionService(repository);
 const queueService = QueueService.getInstance();
 const pendingRepository = new PendingDocumentRepository();
 const whatsAppService = new WhatsAppService();
+const userRepository = new UserRepository();
 
 // Helpers
 function downloadFile(url: string): Promise<Buffer> {
@@ -71,7 +73,13 @@ async function documentWorkerHandler(jobData: DocumentJobData) {
   const fileBuffer = fs.readFileSync(jobData.filePath);
   
   try {
-    const result = await documentService.processDocument(fileBuffer, jobData.originalName);
+    const user = jobData.from ? await userRepository.getUserByPhone(jobData.from) : null;
+    const result = await documentService.processDocument(
+      fileBuffer,
+      jobData.originalName,
+      jobData.from,
+      user?.email || undefined
+    );
     const duplicate = await duplicateService.detect(result.document.sha256Hash);
     await repository.save(result.document);
     logger.info({ originalName: jobData.originalName }, 'Background document processing complete');
@@ -288,11 +296,61 @@ app.post('/api/webhooks/whatsapp', async (req: Request, res: Response) => {
       }
     }
 
-    // A: Handle Text Confirmation replies
+    // Fetch the user from the database
+    const user = await userRepository.getUserByPhone(from);
+
+    // A: Handle Text Confirmation/Menu replies
     if (messageText) {
+      const textNormalized = messageText.trim().toLowerCase();
+
+      // If user is not registered, run registration flow
+      if (!user) {
+        const state = await userRepository.getConversationState(from);
+
+        if (!state) {
+          if (textNormalized === 'register' || textNormalized === 'r') {
+            await userRepository.setConversationState(from, 'AWAITING_EMAIL');
+            await whatsAppService.sendTextMessage(
+              from,
+              `📝 *Klerk Registration*\n\nPlease reply with your Gmail address to connect your invoices to your account.`,
+              phoneNumberId
+            ).catch(() => {});
+          } else {
+            await whatsAppService.sendTextMessage(
+              from,
+              `👋 Welcome to *Klerk Accounting!*\n\nYou are not registered yet. To begin logging invoices, you must register your account.\n\n👉 Reply *Register* to start registration.`,
+              phoneNumberId
+            ).catch(() => {});
+          }
+          return res.sendStatus(200);
+        }
+
+        if (state === 'AWAITING_EMAIL') {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (emailRegex.test(textNormalized)) {
+            await userRepository.createUser(from, textNormalized);
+            await userRepository.clearConversationState(from);
+            await whatsAppService.sendTextMessage(
+              from,
+              `✅ *Registration Complete!*\n\nYour WhatsApp number is now connected to *${textNormalized}*.\n\nYou can now start uploading your PDF invoices and images directly to this chat!`,
+              phoneNumberId
+            ).catch(() => {});
+          } else {
+            await whatsAppService.sendTextMessage(
+              from,
+              `⚠️ Invalid email address format. Please reply with a valid Gmail address (e.g. yourname@gmail.com).`,
+              phoneNumberId
+            ).catch(() => {});
+          }
+          return res.sendStatus(200);
+        }
+
+        return res.sendStatus(200);
+      }
+
+      // User is registered. Handle normal menu/commands/confirmation.
       const pendingDoc = await pendingRepository.getPending(from);
       if (pendingDoc) {
-        const textNormalized = messageText.trim().toLowerCase();
         if (textNormalized === 'yes' || textNormalized === 'y') {
           logger.info({ from, filename: pendingDoc.filename }, 'User confirmed pending invoice upload');
 
@@ -361,13 +419,51 @@ app.post('/api/webhooks/whatsapp', async (req: Request, res: Response) => {
           return res.sendStatus(200);
         }
       } else {
-        logger.info({ from, messageText }, 'Received WhatsApp text reply without a pending document. Acknowledged.');
+        // No pending document. Handle standard menu commands.
+        if (textNormalized === 'review' || textNormalized === 'r') {
+          const docs = await repository.findByUploader(from);
+          if (docs.length === 0) {
+            await whatsAppService.sendTextMessage(
+              from,
+              `📂 You haven't uploaded any invoices yet. Send a PDF or image here to process your first invoice!`,
+              phoneNumberId
+            ).catch(() => {});
+          } else {
+            const docList = docs.slice(0, 5).map((doc, idx) => {
+              const dateStr = doc.documentDate || 'Unknown Date';
+              const supplierStr = doc.supplierName || 'Unknown Supplier';
+              const totalStr = doc.totalTtc || 'Unknown';
+              const link = doc.driveWebViewLink ? `[Link](${doc.driveWebViewLink})` : '';
+              return `${idx + 1}. *${supplierStr}* (${dateStr}) - ${totalStr} ${link}`.trim();
+            }).join('\n');
+            const replyText = `📂 *Your Recent Invoices* (Last 5):\n-------------------------\n${docList}`;
+            await whatsAppService.sendTextMessage(from, replyText, phoneNumberId).catch(() => {});
+          }
+        } else if (textNormalized === 'account' || textNormalized === 'a') {
+          const docs = await repository.findByUploader(from);
+          const replyText = `🏢 *Klerk User Profile*\n-------------------------\n📧 *Gmail*: ${user.email}\n📱 *WhatsApp*: ${user.phoneNumber}\n📊 *Processed Invoices*: ${docs.length}`;
+          await whatsAppService.sendTextMessage(from, replyText, phoneNumberId).catch(() => {});
+        } else {
+          // Send main menu options
+          const menuText = `👋 *Klerk Assistant Menu*\n-------------------------\nChoose one of the commands below:\n\n👉 Send any PDF/Image invoice to process.\n👉 Reply *Review* to see your recent processed invoices.\n👉 Reply *Account* to see your account info.`;
+          await whatsAppService.sendTextMessage(from, menuText, phoneNumberId).catch(() => {});
+        }
         return res.sendStatus(200);
       }
     }
 
     // B: Handle incoming Media message (PDF/Image)
     if (fileBuffer) {
+      // If user is not registered, block media uploads
+      if (!user) {
+        await whatsAppService.sendTextMessage(
+          from,
+          `⚠️ Upload blocked. You must register first before uploading invoices.\n\n👉 Reply *Register* to start registration.`,
+          phoneNumberId
+        ).catch(() => {});
+        return res.status(403).json({ error: 'User not registered' });
+      }
+
       // Clean up any existing pending document for this number first
       const existingPending = await pendingRepository.getPending(from);
       if (existingPending) {
@@ -387,7 +483,7 @@ app.post('/api/webhooks/whatsapp', async (req: Request, res: Response) => {
       let documentType: string | null = null;
 
       try {
-        const result = await documentService.processDocument(fileBuffer, mediaName);
+        const result = await documentService.processDocument(fileBuffer, mediaName, from, user.email);
         supplierName = result.extraction.supplier_name?.value ? String(result.extraction.supplier_name.value) : null;
         totalTtc = result.extraction.total_ttc?.value ? String(result.extraction.total_ttc.value) : null;
         documentDate = result.extraction.document_date?.value ? String(result.extraction.document_date.value) : null;

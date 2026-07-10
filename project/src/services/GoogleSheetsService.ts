@@ -56,19 +56,20 @@ export class GoogleSheetsService {
     docType: string,
     amount: string,
     driveLink: string,
-    status: string
+    status: string,
+    uploaderEmail?: string
   ): Promise<void> {
     if (this.isMock) {
-      return this.appendRowMock(date, supplier, docType, amount, driveLink, status);
+      return this.appendRowMock(date, supplier, docType, amount, driveLink, status, uploaderEmail);
     }
 
     try {
-      const values = [[date, supplier, docType, amount, driveLink, status]];
+      const values = [[date, supplier, docType, amount, driveLink, status, uploaderEmail || '']];
       logger.info({ sheetId: env.GOOGLE_SHEET_ID, values }, 'Appending row to Google Sheets...');
 
       await this.sheets.spreadsheets.values.append({
         spreadsheetId: env.GOOGLE_SHEET_ID!,
-        range: 'A:F',
+        range: 'A:G',
         valueInputOption: 'RAW',
         requestBody: {
           values,
@@ -78,7 +79,7 @@ export class GoogleSheetsService {
       logger.info('Successfully appended row to Google Sheets');
     } catch (error) {
       logger.error({ err: error }, 'Google Sheets append failed. Falling back to MOCK sheets append.');
-      return this.appendRowMock(date, supplier, docType, amount, driveLink, status);
+      return this.appendRowMock(date, supplier, docType, amount, driveLink, status, uploaderEmail);
     }
   }
 
@@ -88,13 +89,14 @@ export class GoogleSheetsService {
     docType: string,
     amount: string,
     driveLink: string,
-    status: string
+    status: string,
+    uploaderEmail?: string
   ): Promise<void> {
     const uploadDir = path.join(process.cwd(), 'uploads');
     fs.mkdirSync(uploadDir, { recursive: true });
 
     const journalPath = path.join(uploadDir, 'accounting_journal.csv');
-    const header = 'Date,Supplier,Type,Amount,Drive Link,Status\n';
+    const header = 'Date,Supplier,Type,Amount,Drive Link,Status,Uploader\n';
 
     if (!fs.existsSync(journalPath)) {
       fs.writeFileSync(journalPath, header);
@@ -107,7 +109,7 @@ export class GoogleSheetsService {
         : escaped;
     };
 
-    const row = `${escape(date)},${escape(supplier)},${escape(docType)},${escape(amount)},${escape(driveLink)},${escape(status)}\n`;
+    const row = `${escape(date)},${escape(supplier)},${escape(docType)},${escape(amount)},${escape(driveLink)},${escape(status)},${escape(uploaderEmail || '')}\n`;
     fs.appendFileSync(journalPath, row);
 
     logger.info({ journalPath, row: row.trim() }, 'Appended row to local simulated Google Sheets journal');

@@ -40,6 +40,7 @@ export interface DocumentRecord {
   total_ttc: string | null;
   drive_file_id: string | null;
   drive_web_view_link: string | null;
+  uploader_phone?: string | null;
   created_at: string;
   updated_at: string;
 }

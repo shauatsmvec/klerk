@@ -29,6 +29,7 @@ interface Document {
   totalTtc: string | null;
   driveFileId: string | null;
   driveWebViewLink: string | null;
+  uploaderPhone: string | null;
   createdAt: string;
 }
 
@@ -382,6 +383,7 @@ export default function App() {
               <thead>
                 <tr>
                   <th>Filename</th>
+                  <th>Uploader</th>
                   <th>Type</th>
                   <th>Supplier</th>
                   <th>Total TTC</th>
@@ -411,6 +413,7 @@ export default function App() {
                       className={selectedDoc?.id === doc.id ? 'selected' : ''}
                     >
                       <td style={{ fontWeight: 500 }}>{doc.originalFilename}</td>
+                      <td style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{doc.uploaderPhone || 'Web Ingestion'}</td>
                       <td style={{ textTransform: 'capitalize' }}>{doc.documentType}</td>
                       <td>{doc.supplierName || '—'}</td>
                       <td>{doc.totalTtc || '—'}</td>
@@ -449,6 +452,9 @@ export default function App() {
                 <div className="meta-grid">
                   <span className="meta-label">Original Filename:</span>
                   <span className="meta-val">{selectedDoc.originalFilename}</span>
+
+                  <span className="meta-label">Uploader (Tenant):</span>
+                  <span className="meta-val">{selectedDoc.uploaderPhone || 'Web Ingestion'}</span>
 
                   <span className="meta-label">MIME Type:</span>
                   <span className="meta-val">{selectedDoc.mimeType}</span>

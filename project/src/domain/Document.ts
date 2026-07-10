@@ -15,6 +15,7 @@ export class Document {
   public totalTtc: string | null;
   public driveFileId: string | null;
   public driveWebViewLink: string | null;
+  public uploaderPhone: string | null;
   public createdAt: string;
   public updatedAt: string;
 
@@ -33,6 +34,7 @@ export class Document {
     this.totalTtc = record.total_ttc;
     this.driveFileId = record.drive_file_id;
     this.driveWebViewLink = record.drive_web_view_link;
+    this.uploaderPhone = record.uploader_phone || null;
     this.createdAt = record.created_at;
     this.updatedAt = record.updated_at;
   }

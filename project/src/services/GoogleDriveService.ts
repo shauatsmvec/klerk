@@ -54,10 +54,11 @@ export class GoogleDriveService {
     filename: string,
     year: string,
     month: string,
-    docType: string
+    docType: string,
+    uploaderEmail?: string
   ): Promise<{ fileId: string; webViewLink: string }> {
     if (this.isMock) {
-      return this.uploadFileMock(fileBuffer, filename, year, month, docType);
+      return this.uploadFileMock(fileBuffer, filename, year, month, docType, uploaderEmail);
     }
 
     let parentFolderId: string;
@@ -65,7 +66,7 @@ export class GoogleDriveService {
     let resolvedNested = false;
 
     try {
-      parentFolderId = await this.resolveFolderId(year, month, docType);
+      parentFolderId = await this.resolveFolderId(year, month, docType, uploaderEmail);
       resolvedNested = true;
     } catch (resolveError) {
       logger.warn(
@@ -88,45 +89,19 @@ export class GoogleDriveService {
       };
 
       logger.info({ filename: targetFileName, parentFolderId }, 'Uploading file to Google Drive...');
+      const response = await this.drive.files.create({
+        requestBody: fileMetadata,
+        media: media,
+        fields: 'id, webViewLink',
+        supportsAllDrives: true,
+      });
 
-      let response;
-      try {
-        response = await this.drive.files.create({
-          requestBody: fileMetadata,
-          media: media,
-          fields: 'id, webViewLink',
-          supportsAllDrives: true,
-        });
-      } catch (uploadError: any) {
-        // If we tried to upload to a nested folder but it failed (e.g. parentNotAFolder),
-        // try uploading directly to the root folder as a fallback.
-        const isParentNotFolder = uploadError.message?.includes('parentNotAFolder') || 
-                                  uploadError.message?.includes('parent is not a folder');
-        if (resolvedNested && isParentNotFolder) {
-          logger.warn(
-            { err: uploadError, filename },
-            'Upload to nested folder failed. Retrying flat upload directly to root project folder...'
-          );
-          parentFolderId = env.GOOGLE_DRIVE_FOLDER_ID || 'root';
-          targetFileName = `${year}_${month}_${docType}_${filename}`;
-          
-          // Re-create stream since it might have been partially consumed
-          const fallbackMedia = {
-            mimeType: 'application/octet-stream',
-            body: Readable.from(fileBuffer),
-          };
-
-          response = await this.drive.files.create({
-            requestBody: {
-              name: targetFileName,
-              parents: [parentFolderId],
-            },
-            media: fallbackMedia,
-            fields: 'id, webViewLink',
-            supportsAllDrives: true,
-          });
+      if (!response.data.id || !response.data.webViewLink) {
+        if (resolvedNested) {
+          throw new Error('Google Drive API returned empty response data');
         } else {
-          throw uploadError;
+          logger.warn('Failed to upload to root folder. Falling back to mock.');
+          return this.uploadFileMock(fileBuffer, filename, year, month, docType, uploaderEmail);
         }
       }
 
@@ -152,7 +127,7 @@ export class GoogleDriveService {
       return { fileId, webViewLink };
     } catch (error) {
       logger.error({ err: error, filename }, 'Google Drive upload failed. Falling back to MOCK upload.');
-      return this.uploadFileMock(fileBuffer, filename, year, month, docType);
+      return this.uploadFileMock(fileBuffer, filename, year, month, docType, uploaderEmail);
     }
   }
 
@@ -161,9 +136,16 @@ export class GoogleDriveService {
     filename: string,
     year: string,
     month: string,
-    docType: string
+    docType: string,
+    uploaderEmail?: string
   ): Promise<{ fileId: string; webViewLink: string }> {
-    const uploadDir = path.join(process.cwd(), 'uploads', 'Compta', year, month, docType);
+    const uploadParts = ['Compta'];
+    if (uploaderEmail) {
+      uploadParts.push(uploaderEmail);
+    }
+    uploadParts.push(year, month, docType);
+    
+    const uploadDir = path.join(process.cwd(), 'uploads', ...uploadParts);
     fs.mkdirSync(uploadDir, { recursive: true });
 
     const filePath = path.join(uploadDir, filename);
@@ -179,11 +161,20 @@ export class GoogleDriveService {
     return { fileId, webViewLink };
   }
 
-  private async resolveFolderId(year: string, month: string, docType: string): Promise<string> {
+  private async resolveFolderId(year: string, month: string, docType: string, uploaderEmail?: string): Promise<string> {
     const comptaId = await this.getOrCreateFolder(['Compta']);
-    const yearId = await this.getOrCreateFolder(['Compta', year], comptaId);
-    const monthId = await this.getOrCreateFolder(['Compta', year, month], yearId);
-    const docTypeId = await this.getOrCreateFolder(['Compta', year, month, docType], monthId);
+    
+    const rootPath = ['Compta'];
+    let parentId = comptaId;
+    
+    if (uploaderEmail) {
+      rootPath.push(uploaderEmail);
+      parentId = await this.getOrCreateFolder(['Compta', uploaderEmail], comptaId);
+    }
+    
+    const yearId = await this.getOrCreateFolder([...rootPath, year], parentId);
+    const monthId = await this.getOrCreateFolder([...rootPath, year, month], yearId);
+    const docTypeId = await this.getOrCreateFolder([...rootPath, year, month, docType], monthId);
     return docTypeId;
   }
 

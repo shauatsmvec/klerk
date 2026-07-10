@@ -26,7 +26,12 @@ export class DocumentService {
     private readonly sheetsService = new GoogleSheetsService(),
   ) {}
 
-  public async processDocument(fileBuffer: Buffer, filename: string): Promise<ProcessedDocumentResult> {
+  public async processDocument(
+    fileBuffer: Buffer,
+    filename: string,
+    uploaderPhone?: string,
+    uploaderEmail?: string
+  ): Promise<ProcessedDocumentResult> {
     const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
     const ocrResult = await this.ocrService.extractText(fileBuffer, filename);
     const classification = this.classificationService.classify(ocrResult.text);
@@ -58,7 +63,8 @@ export class DocumentService {
       filename,
       year,
       month,
-      classification.type
+      classification.type,
+      uploaderEmail
     );
 
     // Append entry to Google Sheets
@@ -68,7 +74,8 @@ export class DocumentService {
       classification.type,
       extraction.total_ttc.value ?? '',
       uploadResult.webViewLink,
-      status
+      status,
+      uploaderEmail
     );
 
     const document = new Document({
@@ -86,6 +93,7 @@ export class DocumentService {
       total_ttc: extraction.total_ttc.value,
       drive_file_id: uploadResult.fileId,
       drive_web_view_link: uploadResult.webViewLink,
+      uploader_phone: uploaderPhone || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
