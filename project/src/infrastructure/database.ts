@@ -30,6 +30,17 @@ export async function runMigration(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_documents_hash ON documents(sha256_hash);
       CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
       CREATE INDEX IF NOT EXISTS idx_documents_date ON documents(document_date);
+
+      CREATE TABLE IF NOT EXISTS pending_documents (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        phone_number VARCHAR(50) NOT NULL UNIQUE,
+        phone_number_id VARCHAR(50) NOT NULL,
+        filename VARCHAR(255) NOT NULL,
+        temp_file_path VARCHAR(512) NOT NULL,
+        supplier_name VARCHAR(255),
+        total_ttc VARCHAR(50),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
     `;
 
     await client.query(sql);

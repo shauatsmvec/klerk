@@ -10,6 +10,8 @@ import { DuplicateDetectionService } from '../services/DuplicateDetectionService
 import { logger } from '../config/logger';
 import { buildUploadResponse } from './response';
 import { QueueService } from '../queue/QueueService';
+import { PendingDocumentRepository } from '../repositories/PendingDocumentRepository';
+import { WhatsAppService } from '../services/WhatsAppService';
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -31,6 +33,8 @@ const documentService = new DocumentService();
 const repository = new DocumentRepository();
 const duplicateService = new DuplicateDetectionService(repository);
 const queueService = QueueService.getInstance();
+const pendingRepository = new PendingDocumentRepository();
+const whatsAppService = new WhatsAppService();
 
 // Helpers
 function downloadFile(url: string): Promise<Buffer> {
@@ -49,8 +53,15 @@ function downloadFile(url: string): Promise<Buffer> {
   });
 }
 
+interface DocumentJobData {
+  filePath: string;
+  originalName: string;
+  from?: string;
+  phoneNumberId?: string;
+}
+
 // Background Worker handler (registered after pg-boss starts)
-async function documentWorkerHandler(jobData: { filePath: string; originalName: string }) {
+async function documentWorkerHandler(jobData: DocumentJobData) {
   logger.info({ filePath: jobData.filePath }, 'Background worker processing document');
   
   if (!fs.existsSync(jobData.filePath)) {
@@ -64,6 +75,24 @@ async function documentWorkerHandler(jobData: { filePath: string; originalName: 
     const duplicate = await duplicateService.detect(result.document.sha256Hash);
     await repository.save(result.document);
     logger.info({ originalName: jobData.originalName }, 'Background document processing complete');
+
+    if (jobData.from && jobData.phoneNumberId) {
+      await whatsAppService.sendTextMessage(
+        jobData.from,
+        `✅ Invoice "${jobData.originalName}" has been successfully processed, uploaded to Google Drive, and logged in Google Sheets!`,
+        jobData.phoneNumberId
+      ).catch((err) => logger.warn({ err: err.message }, 'Failed to send outbound WhatsApp success confirmation'));
+    }
+  } catch (error: any) {
+    logger.error({ err: error, originalName: jobData.originalName }, 'Background document processing failed');
+    if (jobData.from && jobData.phoneNumberId) {
+      await whatsAppService.sendTextMessage(
+        jobData.from,
+        `❌ Sorry, we encountered an error while processing your invoice "${jobData.originalName}": ${error.message}`,
+        jobData.phoneNumberId
+      ).catch((err) => logger.warn({ err: err.message }, 'Failed to send outbound WhatsApp failure notification'));
+    }
+    throw error;
   } finally {
     // Clean up temporary file
     try {
@@ -193,68 +222,191 @@ app.post('/api/webhooks/whatsapp', async (req: Request, res: Response) => {
     let from = 'unknown';
     let mediaName = 'whatsapp_document.pdf';
     let fileBuffer: Buffer | null = null;
+    let messageText: string | null = null;
+    let phoneNumberId = '1117276108146469'; // Default fallback
 
     // Check if real Meta Webhook payload is present
     if (req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0]) {
-      const message = req.body.entry[0].changes[0].value.messages[0];
+      const value = req.body.entry[0].changes[0].value;
+      const message = value.messages[0];
       from = message.from || 'unknown';
+      phoneNumberId = value.metadata?.phone_number_id || phoneNumberId;
 
-      let mediaId: string | null = null;
-      if (message.type === 'document' && message.document) {
-        mediaId = message.document.id;
-        mediaName = message.document.filename || 'whatsapp_document.pdf';
-      } else if (message.type === 'image' && message.image) {
-        mediaId = message.image.id;
-        mediaName = 'whatsapp_image.jpg';
+      if (message.type === 'text' && message.text) {
+        messageText = message.text.body;
+      } else {
+        let mediaId: string | null = null;
+        if (message.type === 'document' && message.document) {
+          mediaId = message.document.id;
+          mediaName = message.document.filename || 'whatsapp_document.pdf';
+        } else if (message.type === 'image' && message.image) {
+          mediaId = message.image.id;
+          mediaName = 'whatsapp_image.jpg';
+        }
+
+        if (!mediaId) {
+          logger.info({ messageType: message.type }, 'Received non-media Meta WhatsApp event. Acknowledged.');
+          return res.sendStatus(200);
+        }
+
+        logger.info({ mediaId, mediaName, from }, 'Received real Meta WhatsApp webhook media event');
+        fileBuffer = await downloadMetaMedia(mediaId);
       }
-
-      if (!mediaId) {
-        logger.info({ messageType: message.type }, 'Received non-media Meta WhatsApp event. Acknowledged.');
-        return res.sendStatus(200);
-      }
-
-      logger.info({ mediaId, mediaName, from }, 'Received real Meta WhatsApp webhook media event');
-      fileBuffer = await downloadMetaMedia(mediaId);
     } else {
-      // Local simulator fallback
-      const { from: simFrom, mediaUrl, mediaName: simMediaName } = req.body;
-      if (!mediaUrl || !simMediaName) {
-        return res.status(400).json({ error: 'Missing mediaUrl or mediaName for simulation' });
-      }
-
+      // Local simulator fallback (can simulate text messages OR media messages)
+      const { from: simFrom, mediaUrl, mediaName: simMediaName, messageText: simText } = req.body;
       from = simFrom || 'unknown';
-      mediaName = simMediaName;
-      logger.info({ from, mediaUrl, mediaName }, 'Received simulated WhatsApp message webhook');
 
-      try {
-        fileBuffer = await downloadFile(mediaUrl);
-      } catch (downloadError: any) {
-        logger.warn(
-          { err: downloadError.message, mediaUrl },
-          'Failed to download WhatsApp media. Falling back to structured dummy buffer.'
-        );
-        fileBuffer = Buffer.from(
-          `Supplier: Sanitherm SA\nDocument date: 15/06/2026\nTotal TTC: 1246,80 €\n`
-        );
+      if (simText) {
+        messageText = simText;
+      } else {
+        if (!mediaUrl || !simMediaName) {
+          return res.status(400).json({ error: 'Missing mediaUrl/mediaName or messageText for simulation' });
+        }
+        mediaName = simMediaName;
+        logger.info({ from, mediaUrl, mediaName }, 'Received simulated WhatsApp message webhook');
+
+        try {
+          fileBuffer = await downloadFile(mediaUrl);
+        } catch (downloadError: any) {
+          logger.warn(
+            { err: downloadError.message, mediaUrl },
+            'Failed to download WhatsApp media. Falling back to structured dummy buffer.'
+          );
+          fileBuffer = Buffer.from(
+            `Supplier: Sanitherm SA\nDocument date: 15/06/2026\nTotal TTC: 124,00 €\n`
+          );
+        }
       }
     }
 
-    const tmpDir = path.join(process.cwd(), 'uploads', 'tmp');
-    fs.mkdirSync(tmpDir, { recursive: true });
-    const tmpFilePath = path.join(tmpDir, `${Date.now()}-${mediaName}`);
-    fs.writeFileSync(tmpFilePath, fileBuffer);
+    // A: Handle Text Confirmation replies
+    if (messageText) {
+      const pendingDoc = await pendingRepository.getPending(from);
+      if (pendingDoc) {
+        const textNormalized = messageText.trim().toLowerCase();
+        if (textNormalized === 'yes' || textNormalized === 'y') {
+          logger.info({ from, filename: pendingDoc.filename }, 'User confirmed pending invoice upload');
 
-    const jobId = await queueService.sendJob('document-processing', {
-      filePath: tmpFilePath,
-      originalName: mediaName,
-      from,
-    });
+          // Move file from pending to temp directory for processing
+          const tmpDir = path.join(process.cwd(), 'uploads', 'tmp');
+          fs.mkdirSync(tmpDir, { recursive: true });
+          const tmpFilePath = path.join(tmpDir, `${Date.now()}-${pendingDoc.filename}`);
+          
+          if (fs.existsSync(pendingDoc.tempFilePath)) {
+            fs.renameSync(pendingDoc.tempFilePath, tmpFilePath);
+          } else {
+            return res.status(404).json({ error: 'Temporary pending file not found' });
+          }
 
-    return res.status(202).json({
-      status: 'accepted',
-      jobId,
-      message: 'Document enqueued for processing',
-    });
+          // Enqueue the document processing job
+          const jobId = await queueService.sendJob('document-processing', {
+            filePath: tmpFilePath,
+            originalName: pendingDoc.filename,
+            from,
+            phoneNumberId,
+          });
+
+          await whatsAppService.sendTextMessage(
+            from,
+            `⏳ Confirmed. Processing invoice "${pendingDoc.filename}"...`,
+            phoneNumberId
+          ).catch(() => {});
+
+          await pendingRepository.deletePending(from);
+
+          return res.status(202).json({
+            status: 'accepted',
+            jobId,
+            message: 'Document confirmed and enqueued for processing',
+          });
+        } else if (textNormalized === 'no' || textNormalized === 'n') {
+          logger.info({ from, filename: pendingDoc.filename }, 'User cancelled pending invoice upload');
+
+          // Clean up the temp file
+          if (fs.existsSync(pendingDoc.tempFilePath)) {
+            fs.unlinkSync(pendingDoc.tempFilePath);
+          }
+
+          await pendingRepository.deletePending(from);
+
+          await whatsAppService.sendTextMessage(
+            from,
+            `❌ Cancelled. The invoice "${pendingDoc.filename}" has been discarded. Please send the correct document.`,
+            phoneNumberId
+          ).catch(() => {});
+
+          return res.sendStatus(200);
+        } else {
+          // Re-prompt the user
+          const displaySupplier = pendingDoc.supplierName || 'Unknown Supplier';
+          const displayTotal = pendingDoc.totalTtc ? `for *${pendingDoc.totalTtc}*` : '';
+          const promptText = `⚠️ You have a pending invoice from *${displaySupplier}* ${displayTotal}.\n\nDo you confirm this invoice?\n* Reply *Yes* to upload\n* Reply *No* to discard`;
+
+          await whatsAppService.sendTextMessage(from, promptText, phoneNumberId).catch(() => {});
+          return res.sendStatus(200);
+        }
+      } else {
+        logger.info({ from, messageText }, 'Received WhatsApp text reply without a pending document. Acknowledged.');
+        return res.sendStatus(200);
+      }
+    }
+
+    // B: Handle incoming Media message (PDF/Image)
+    if (fileBuffer) {
+      // Clean up any existing pending document for this number first
+      const existingPending = await pendingRepository.getPending(from);
+      if (existingPending) {
+        if (fs.existsSync(existingPending.tempFilePath)) {
+          try {
+            fs.unlinkSync(existingPending.tempFilePath);
+          } catch {}
+        }
+        await pendingRepository.deletePending(from);
+      }
+
+      // Run initial extraction (OCR & parser) to show preview info to the user
+      let supplierName: string | null = null;
+      let totalTtc: string | null = null;
+
+      try {
+        const result = await documentService.processDocument(fileBuffer, mediaName);
+        supplierName = result.extraction.supplier_name?.value ? String(result.extraction.supplier_name.value) : null;
+        totalTtc = result.extraction.total_ttc?.value ? String(result.extraction.total_ttc.value) : null;
+      } catch (err: any) {
+        logger.warn({ err: err.message }, 'Failed initial extraction on webhook. Using empty fallbacks.');
+      }
+
+      // Save the buffer to uploads/pending/
+      const pendingDir = path.join(process.cwd(), 'uploads', 'pending');
+      fs.mkdirSync(pendingDir, { recursive: true });
+      const tempFilePath = path.join(pendingDir, `${Date.now()}-${mediaName}`);
+      fs.writeFileSync(tempFilePath, fileBuffer);
+
+      // Save record to database
+      await pendingRepository.savePending({
+        phoneNumber: from,
+        phoneNumberId,
+        filename: mediaName,
+        tempFilePath,
+        supplierName,
+        totalTtc,
+      });
+
+      // Send prompt text
+      const displaySupplier = supplierName || 'Unknown';
+      const displayTotal = totalTtc ? `for *${totalTtc}*` : '';
+      const promptText = `📄 Invoice detected from *${displaySupplier}* ${displayTotal}.\n\nDo you confirm this invoice?\n* Reply *Yes* to confirm & log\n* Reply *No* to discard`;
+
+      await whatsAppService.sendTextMessage(from, promptText, phoneNumberId).catch(() => {});
+
+      return res.status(202).json({
+        status: 'pending_confirmation',
+        message: 'Document saved to pending state. Waiting for user confirmation.',
+      });
+    }
+
+    return res.sendStatus(400);
   } catch (error) {
     logger.error({ err: error }, 'WhatsApp webhook processing failed');
     return res.status(500).json({ error: 'Failed to process webhook' });
