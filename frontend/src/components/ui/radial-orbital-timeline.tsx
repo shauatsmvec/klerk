@@ -1,9 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowRight, Link, Zap } from "lucide-react";
-import { Badge } from "./badge";
-import { Button } from "./button";
-import { Card, CardContent, CardHeader, CardTitle } from "./card";
+import { ArrowRight, Zap } from "lucide-react";
 
 interface TimelineItem {
   id: number;
@@ -113,7 +110,7 @@ export default function RadialOrbitalTimeline({
 
   const calculateNodePosition = (index: number, total: number) => {
     const angle = ((index / total) * 360 + rotationAngle) % 360;
-    const radius = 180;
+    const radius = 170;
     const radian = (angle * Math.PI) / 180;
 
     const x = radius * Math.cos(radian) + centerOffset.x;
@@ -139,47 +136,49 @@ export default function RadialOrbitalTimeline({
     return relatedItems.includes(itemId);
   };
 
-  const getStatusStyles = (status: TimelineItem["status"]): string => {
-    switch (status) {
-      case "completed":
-        return "text-white bg-black border-white";
-      case "in-progress":
-        return "text-black bg-white border-black";
-      case "pending":
-        return "text-white bg-black/40 border-white/50";
-      default:
-        return "text-white bg-black/40 border-white/50";
-    }
-  };
-
   return (
     <div
-      className="w-full flex flex-col items-center justify-center bg-black overflow-hidden shadow-2xl rounded-3xl border border-white/10"
-      style={{ height: '620px', minHeight: '620px', position: 'relative' }}
       ref={containerRef}
       onClick={handleContainerClick}
+      style={{
+        width: "100%",
+        height: "580px",
+        minHeight: "580px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#000000",
+        overflow: "hidden",
+        position: "relative",
+        borderRadius: "24px",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+        boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)"
+      }}
     >
-      <div className="relative w-full max-w-4xl h-full flex items-center justify-center">
+      <div style={{ position: "relative", width: "100%", maxWidth: "896px", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div
-          className="absolute w-full h-full flex items-center justify-center"
           ref={orbitRef}
           style={{
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             perspective: "1000px",
             transform: `translate(${centerOffset.x}px, ${centerOffset.y}px)`,
           }}
         >
           {/* Pulsing center hub */}
-          <div className="absolute w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 via-blue-500 to-teal-500 animate-pulse flex items-center justify-center z-10">
-            <div className="absolute w-20 h-20 rounded-full border border-white/20 animate-ping opacity-70"></div>
-            <div
-              className="absolute w-24 h-24 rounded-full border border-white/10 animate-ping opacity-50"
-              style={{ animationDelay: "0.5s" }}
-            ></div>
-            <div className="w-8 h-8 rounded-full bg-white/80 backdrop-blur-md"></div>
+          <div style={{ position: "absolute", width: "64px", height: "64px", borderRadius: "50%", background: "linear-gradient(135deg, #a855f7, #3b82f6, #14b8a6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>
+            <div style={{ position: "absolute", inset: "-8px", borderRadius: "50%", border: "1px solid rgba(255, 255, 255, 0.2)", opacity: 0.7, pointerEvents: "none" }} className="animate-pulse"></div>
+            <div style={{ position: "absolute", inset: "-16px", borderRadius: "50%", border: "1px solid rgba(255, 255, 255, 0.1)", opacity: 0.5, pointerEvents: "none", animationDelay: "0.5s" }} className="animate-pulse"></div>
+            <div style={{ width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "rgba(255, 255, 255, 0.85)", backdropFilter: "blur(12px)" }}></div>
           </div>
 
           {/* Orbit Line Ring */}
-          <div className="absolute w-[360px] h-[360px] rounded-full border border-white/10"></div>
+          <div style={{ position: "absolute", width: "340px", height: "340px", borderRadius: "50%", border: "1px solid rgba(255, 255, 255, 0.15)", pointerEvents: "none" }}></div>
 
           {timelineData.map((item, index) => {
             const position = calculateNodePosition(index, timelineData.length);
@@ -189,151 +188,186 @@ export default function RadialOrbitalTimeline({
             const Icon = item.icon;
 
             const nodeStyle = {
+              position: "absolute" as const,
               transform: `translate(${position.x}px, ${position.y}px)`,
               zIndex: isExpanded ? 200 : position.zIndex,
               opacity: isExpanded ? 1 : position.opacity,
+              transition: "transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.7s ease",
             };
 
             return (
               <div
                 key={item.id}
                 ref={(el) => { nodeRefs.current[item.id] = el; }}
-                className="absolute transition-all duration-700 cursor-pointer"
                 style={nodeStyle}
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleItem(item.id);
                 }}
               >
+                {/* Glow ring */}
                 <div
-                  className={`absolute rounded-full -inset-1 ${
-                    isPulsing ? "animate-pulse duration-1000" : ""
-                  }`}
+                  className={isPulsing ? "animate-pulse" : ""}
                   style={{
+                    position: "absolute",
+                    borderRadius: "50%",
                     background: `radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%)`,
                     width: `${item.energy * 0.5 + 40}px`,
                     height: `${item.energy * 0.5 + 40}px`,
                     left: `-${(item.energy * 0.5 + 40 - 40) / 2}px`,
                     top: `-${(item.energy * 0.5 + 40 - 40) / 2}px`,
+                    pointerEvents: "none"
                   }}
                 ></div>
 
+                {/* Node circle */}
                 <div
-                  className={`
-                  w-10 h-10 rounded-full flex items-center justify-center
-                  ${
-                    isExpanded
-                      ? "bg-white text-black"
-                      : isRelated
-                      ? "bg-white/50 text-black"
-                      : "bg-black text-white"
-                  }
-                  border-2 
-                  ${
-                    isExpanded
-                      ? "border-white shadow-lg shadow-white/30"
-                      : isRelated
-                      ? "border-white animate-pulse"
-                      : "border-white/40"
-                  }
-                  transition-all duration-300 transform
-                  ${isExpanded ? "scale-150" : ""}
-                `}
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "2px solid",
+                    borderColor: isExpanded || isRelated ? "#ffffff" : "rgba(255, 255, 255, 0.4)",
+                    backgroundColor: isExpanded ? "#ffffff" : isRelated ? "rgba(255, 255, 255, 0.5)" : "#000000",
+                    color: isExpanded || isRelated ? "#000000" : "#ffffff",
+                    transition: "all 0.3s ease",
+                    transform: isExpanded ? "scale(1.4)" : "scale(1)",
+                    boxShadow: isExpanded ? "0 10px 15px -3px rgba(255, 255, 255, 0.3)" : "none"
+                  }}
+                  className={isRelated ? "animate-pulse" : ""}
                 >
                   <Icon size={16} />
                 </div>
 
+                {/* Title label */}
                 <div
-                  className={`
-                  absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap
-                  text-xs font-semibold tracking-wider
-                  transition-all duration-300
-                  ${isExpanded ? "text-white scale-125" : "text-white/70"}
-                `}
+                  style={{
+                    position: "absolute",
+                    top: "48px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    whiteSpace: "nowrap",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    letterSpacing: "0.05em",
+                    color: isExpanded ? "#ffffff" : "rgba(255, 255, 255, 0.7)",
+                    transition: "all 0.3s ease"
+                  }}
                 >
                   {item.title}
                 </div>
 
                 {isExpanded && (
-                  <Card className="absolute top-20 left-1/2 -translate-x-1/2 w-64 bg-black/90 backdrop-blur-lg border-white/30 shadow-xl shadow-white/10 overflow-visible">
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-px h-3 bg-white/50"></div>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-center">
-                        <Badge
-                          className={`px-2 text-xs ${getStatusStyles(
-                            item.status
-                          )}`}
-                        >
-                          {item.status === "completed"
-                            ? "COMPLETE"
-                            : item.status === "in-progress"
-                            ? "IN PROGRESS"
-                            : "PENDING"}
-                        </Badge>
-                        <span className="text-xs font-mono text-white/50">
-                          {item.date}
+                  <div 
+                    style={{
+                      position: "absolute",
+                      top: "80px",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: "256px",
+                      backgroundColor: "rgba(0, 0, 0, 0.92)",
+                      backdropFilter: "blur(16px)",
+                      WebkitBackdropFilter: "blur(16px)",
+                      border: "1px solid rgba(255, 255, 255, 0.25)",
+                      borderRadius: "12px",
+                      padding: "16px",
+                      boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5), 0 0 15px rgba(255, 255, 255, 0.05)",
+                      zIndex: 300,
+                      color: "#ffffff",
+                      fontFamily: "var(--font-family)"
+                    }}
+                  >
+                    <div style={{ position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)", width: "1px", height: "12px", backgroundColor: "rgba(255, 255, 255, 0.5)" }}></div>
+                    
+                    {/* Header */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                      <span 
+                        style={{ 
+                          padding: "2px 8px", 
+                          borderRadius: "9999px", 
+                          fontSize: "9px", 
+                          fontWeight: 700, 
+                          border: "1px solid", 
+                          color: item.status === "completed" ? "#ffffff" : item.status === "in-progress" ? "#000000" : "#ffffff", 
+                          backgroundColor: item.status === "completed" ? "#000000" : item.status === "in-progress" ? "#ffffff" : "rgba(0,0,0,0.4)", 
+                          borderColor: item.status === "completed" ? "#ffffff" : item.status === "in-progress" ? "#000000" : "rgba(255,255,255,0.5)" 
+                        }}
+                      >
+                        {item.status === "completed" ? "COMPLETE" : item.status === "in-progress" ? "IN PROGRESS" : "PENDING"}
+                      </span>
+                      <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>
+                        {item.date}
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#ffffff", margin: "6px 0", lineHeight: 1.3 }}>
+                      {item.title}
+                    </div>
+
+                    {/* Content */}
+                    <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.8)", margin: "0 0 12px 0", lineHeight: 1.4, textAlign: "left" }}>
+                      {item.content}
+                    </p>
+
+                    {/* Progress Bar */}
+                    <div style={{ paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", marginBottom: "4px", color: "rgba(255, 255, 255, 0.7)" }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                          <Zap size={10} style={{ color: "#eab308" }} />
+                          System Health
                         </span>
+                        <span style={{ fontFamily: "monospace" }}>{item.energy}%</span>
                       </div>
-                      <CardTitle className="text-sm mt-2">
-                        {item.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-white/80">
-                      <p>{item.content}</p>
+                      <div style={{ width: "100%", height: "4px", backgroundColor: "rgba(255,255,255,0.15)", borderRadius: "9999px", overflow: "hidden" }}>
+                        <div
+                          style={{ height: "100%", background: "linear-gradient(to right, #3b82f6, #a855f7)", width: `${item.energy}%` }}
+                        ></div>
+                      </div>
+                    </div>
 
-                      <div className="mt-4 pt-3 border-t border-white/10">
-                        <div className="flex justify-between items-center text-xs mb-1">
-                          <span className="flex items-center text-white/80">
-                            <Zap size={10} className="mr-1 text-yellow-400" />
-                            System Health
-                          </span>
-                          <span className="font-mono text-white/80">{item.energy}%</span>
+                    {/* Linked nodes */}
+                    {item.relatedIds.length > 0 && (
+                      <div style={{ marginTop: "12px", paddingTop: "8px", borderTop: "1px solid rgba(255,255,255,0.1)", textAlign: "left" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "rgba(255, 255, 255, 0.6)", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: "6px" }}>
+                          <span>Linked Workflow Steps</span>
                         </div>
-                        <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
-                            style={{ width: `${item.energy}%` }}
-                          ></div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                          {item.relatedIds.map((relatedId) => {
+                            const relatedItem = timelineData.find((i) => i.id === relatedId);
+                            return (
+                              <button
+                                key={relatedId}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  height: "20px",
+                                  padding: "0 6px",
+                                  fontSize: "10px",
+                                  backgroundColor: "transparent",
+                                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                                  color: "rgba(255, 255, 255, 0.8)",
+                                  borderRadius: "4px",
+                                  cursor: "pointer",
+                                  transition: "all 0.2s"
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleItem(relatedId);
+                                }}
+                              >
+                                {relatedItem?.title.split(". ")[1] || relatedItem?.title}
+                                <ArrowRight size={8} style={{ marginLeft: "2px", opacity: 0.6 }} />
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
-
-                      {item.relatedIds.length > 0 && (
-                        <div className="mt-4 pt-3 border-t border-white/10">
-                          <div className="flex items-center mb-2">
-                            <Link size={10} className="text-white/70 mr-1" />
-                            <h4 className="text-xs uppercase tracking-wider font-medium text-white/70">
-                              Linked Workflow Steps
-                            </h4>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {item.relatedIds.map((relatedId) => {
-                              const relatedItem = timelineData.find(
-                                (i) => i.id === relatedId
-                              );
-                              return (
-                                <Button
-                                  key={relatedId}
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex items-center h-6 px-2 py-0 text-xs rounded-none border-white/20 bg-transparent hover:bg-white/10 text-white/80 hover:text-white transition-all"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleItem(relatedId);
-                                  }}
-                                >
-                                  {relatedItem?.title}
-                                  <ArrowRight
-                                    size={8}
-                                    className="ml-1 text-white/60"
-                                  />
-                                </Button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                    )}
+                  </div>
                 )}
               </div>
             );
