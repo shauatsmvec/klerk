@@ -4,7 +4,8 @@ import {
   Database,
   FolderOpen,
   Server,
-  ShieldCheck
+  ShieldCheck,
+  ExternalLink
 } from 'lucide-react';
 
 type ModalType = 
@@ -290,6 +291,10 @@ export default function App() {
                       <li><strong>User Registry Check</strong>: Verifies if the incoming phone number exists in our database. Unregistered users are prompted to Register first.</li>
                       <li><strong>Pending State Hold</strong>: Holds new documents in a temporary <code>pending_documents</code> table to support user verification loops before final commit.</li>
                     </ul>
+                    <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--colors-hairline)', display: 'flex', gap: '16px', fontSize: '13px' }}>
+                      <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks" target="_blank" rel="noreferrer" className="link-btn">Official Documentation <ExternalLink size={12} /></a>
+                      <a href="https://github.com/shauatsmvec/klerk/blob/main/project/src/api/server.ts" target="_blank" rel="noreferrer" className="link-btn">GitHub Source <ExternalLink size={12} /></a>
+                    </div>
                   </div>
                 )}
 
@@ -302,6 +307,10 @@ export default function App() {
                       <li><strong>SHA-256 Deduplication</strong>: Rejects files if their unique SHA-256 hash already matches an entry in the database.</li>
                       <li><strong>Extraction Flow</strong>: Runs asynchronous text OCR, LLM text classification, and outputs structured extraction metadata mapping.</li>
                     </ul>
+                    <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--colors-hairline)', display: 'flex', gap: '16px', fontSize: '13px' }}>
+                      <a href="https://expressjs.com/en/resources/middleware/multer.html" target="_blank" rel="noreferrer" className="link-btn">Official Documentation <ExternalLink size={12} /></a>
+                      <a href="https://github.com/shauatsmvec/klerk/blob/main/project/src/services/DocumentService.ts" target="_blank" rel="noreferrer" className="link-btn">GitHub Source <ExternalLink size={12} /></a>
+                    </div>
                   </div>
                 )}
 
@@ -313,6 +322,10 @@ export default function App() {
                       <li><strong>Job Dispatch</strong>: WhatsApp webhook downloads file media and enqueues it to the <code>document-processing</code> queue table.</li>
                       <li><strong>Background Worker</strong>: An independent worker thread polls, locks, and processes the job in the background, avoiding timeout errors.</li>
                     </ul>
+                    <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--colors-hairline)', display: 'flex', gap: '16px', fontSize: '13px' }}>
+                      <a href="https://github.com/timgit/pg-boss" target="_blank" rel="noreferrer" className="link-btn">Official Documentation <ExternalLink size={12} /></a>
+                      <a href="https://github.com/shauatsmvec/klerk/blob/main/project/src/queue/QueueService.ts" target="_blank" rel="noreferrer" className="link-btn">GitHub Source <ExternalLink size={12} /></a>
+                    </div>
                   </div>
                 )}
 
@@ -324,6 +337,10 @@ export default function App() {
                       <li><strong>Segregated Paths</strong>: Saves documents to <code>Compta/[email]/[Year]/[Month]/[DocType]</code>.</li>
                       <li><strong>Self-Healing Fallback</strong>: If directory creation fails, documents default to the root <code>klerk_service</code> folder, prefixed with the user's Gmail to maintain layout isolation.</li>
                     </ul>
+                    <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--colors-hairline)', display: 'flex', gap: '16px', fontSize: '13px' }}>
+                      <a href="https://developers.google.com/drive/api/guides/folder" target="_blank" rel="noreferrer" className="link-btn">Official Documentation <ExternalLink size={12} /></a>
+                      <a href="https://github.com/shauatsmvec/klerk/blob/main/project/src/services/GoogleDriveService.ts" target="_blank" rel="noreferrer" className="link-btn">GitHub Source <ExternalLink size={12} /></a>
+                    </div>
                   </div>
                 )}
 
@@ -332,6 +349,10 @@ export default function App() {
                     <p>Every processed transaction appends a log entry to a global Sheets table.</p>
                     <h3>Ledger Columns</h3>
                     <p>Records: <code>Date</code>, <code>Supplier</code>, <code>Document Type</code>, <code>Amount TTC</code>, <code>Drive View Link</code>, <code>Status</code>, and the registered <code>Uploader</code> email address.</p>
+                    <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--colors-hairline)', display: 'flex', gap: '16px', fontSize: '13px' }}>
+                      <a href="https://developers.google.com/sheets/api/guides/values" target="_blank" rel="noreferrer" className="link-btn">Official Documentation <ExternalLink size={12} /></a>
+                      <a href="https://github.com/shauatsmvec/klerk/blob/main/project/src/services/GoogleSheetsService.ts" target="_blank" rel="noreferrer" className="link-btn">GitHub Source <ExternalLink size={12} /></a>
+                    </div>
                   </div>
                 )}
 
@@ -342,6 +363,10 @@ export default function App() {
                       <li><code>https://www.googleapis.com/auth/drive.file</code> - Allows folder creation and file uploads inside Klerk folders.</li>
                       <li><code>https://www.googleapis.com/auth/spreadsheets</code> - Allows appending rows and updating cells in your log spreadsheet.</li>
                     </ul>
+                    <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--colors-hairline)', display: 'flex', gap: '16px', fontSize: '13px' }}>
+                      <a href="https://developers.google.com/identity/protocols/oauth2/scopes" target="_blank" rel="noreferrer" className="link-btn">Official Documentation <ExternalLink size={12} /></a>
+                      <a href="https://github.com/shauatsmvec/klerk/blob/main/documentation/usage_guide/usage_guide.md" target="_blank" rel="noreferrer" className="link-btn">GitHub Source <ExternalLink size={12} /></a>
+                    </div>
                   </div>
                 )}
 
@@ -354,6 +379,10 @@ export default function App() {
                       <li><code>documents</code>: Stores filenames, hashes, OCR text, and metadata.</li>
                       <li><code>conversation_states</code>: Tracks active chat registration sessions.</li>
                     </ul>
+                    <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--colors-hairline)', display: 'flex', gap: '16px', fontSize: '13px' }}>
+                      <a href="https://supabase.com/docs/guides/database" target="_blank" rel="noreferrer" className="link-btn">Official Documentation <ExternalLink size={12} /></a>
+                      <a href="https://github.com/shauatsmvec/klerk/blob/main/project/src/infrastructure/database.ts" target="_blank" rel="noreferrer" className="link-btn">GitHub Source <ExternalLink size={12} /></a>
+                    </div>
                   </div>
                 )}
 
@@ -365,6 +394,10 @@ export default function App() {
                       <li><strong>Read Isolation</strong>: Users can only query files linked to their phone number.</li>
                       <li><strong>Developer Override</strong>: Dashboards bypass policies using service role keys.</li>
                     </ul>
+                    <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--colors-hairline)', display: 'flex', gap: '16px', fontSize: '13px' }}>
+                      <a href="https://www.postgresql.org/docs/current/ddl-rowsecurity.html" target="_blank" rel="noreferrer" className="link-btn">Official Documentation <ExternalLink size={12} /></a>
+                      <a href="https://github.com/shauatsmvec/klerk/blob/main/project/migrations/20260710_create_multitenancy_tables.sql" target="_blank" rel="noreferrer" className="link-btn">GitHub Source <ExternalLink size={12} /></a>
+                    </div>
                   </div>
                 )}
 
@@ -375,6 +408,10 @@ export default function App() {
                       <li><code>20260707_create_documents_table.sql</code>: Sets up the base invoice registry.</li>
                       <li><code>20260710_create_multitenancy_tables.sql</code>: Configures multi-tenant relationships and user tracking schemas.</li>
                     </ul>
+                    <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid var(--colors-hairline)', display: 'flex', gap: '16px', fontSize: '13px' }}>
+                      <a href="https://supabase.com/docs/guides/cli/local-development#database-migrations" target="_blank" rel="noreferrer" className="link-btn">Official Documentation <ExternalLink size={12} /></a>
+                      <a href="https://github.com/shauatsmvec/klerk/tree/main/project/migrations" target="_blank" rel="noreferrer" className="link-btn">GitHub Source <ExternalLink size={12} /></a>
+                    </div>
                   </div>
                 )}
               </div>
