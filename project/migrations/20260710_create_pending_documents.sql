@@ -7,5 +7,8 @@ CREATE TABLE IF NOT EXISTS pending_documents (
   temp_file_path VARCHAR(512) NOT NULL,
   supplier_name VARCHAR(255),
   total_ttc VARCHAR(50),
+  document_date VARCHAR(50),
+  due_date VARCHAR(50),
+  document_type VARCHAR(50),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

@@ -339,9 +339,15 @@ app.post('/api/webhooks/whatsapp', async (req: Request, res: Response) => {
           return res.sendStatus(200);
         } else {
           // Re-prompt the user
-          const displaySupplier = pendingDoc.supplierName || 'Unknown Supplier';
-          const displayTotal = pendingDoc.totalTtc ? `for *${pendingDoc.totalTtc}*` : '';
-          const promptText = `⚠️ You have a pending invoice from *${displaySupplier}* ${displayTotal}.\n\nDo you confirm this invoice?\n* Reply *Yes* to upload\n* Reply *No* to discard`;
+          const promptText = formatPendingMessage(
+            '⚠️ Pending Document Confirmation',
+            pendingDoc.filename,
+            pendingDoc.supplierName,
+            pendingDoc.totalTtc,
+            pendingDoc.documentDate,
+            pendingDoc.dueDate,
+            pendingDoc.documentType
+          );
 
           await whatsAppService.sendTextMessage(from, promptText, phoneNumberId).catch(() => {});
           return res.sendStatus(200);
@@ -368,11 +374,17 @@ app.post('/api/webhooks/whatsapp', async (req: Request, res: Response) => {
       // Run initial extraction (OCR & parser) to show preview info to the user
       let supplierName: string | null = null;
       let totalTtc: string | null = null;
+      let documentDate: string | null = null;
+      let dueDate: string | null = null;
+      let documentType: string | null = null;
 
       try {
         const result = await documentService.processDocument(fileBuffer, mediaName);
         supplierName = result.extraction.supplier_name?.value ? String(result.extraction.supplier_name.value) : null;
         totalTtc = result.extraction.total_ttc?.value ? String(result.extraction.total_ttc.value) : null;
+        documentDate = result.extraction.document_date?.value ? String(result.extraction.document_date.value) : null;
+        dueDate = result.extraction.due_date?.value ? String(result.extraction.due_date.value) : null;
+        documentType = result.document.documentType || 'invoice';
       } catch (err: any) {
         logger.warn({ err: err.message }, 'Failed initial extraction on webhook. Using empty fallbacks.');
       }
@@ -391,12 +403,21 @@ app.post('/api/webhooks/whatsapp', async (req: Request, res: Response) => {
         tempFilePath,
         supplierName,
         totalTtc,
+        documentDate,
+        dueDate,
+        documentType,
       });
 
       // Send prompt text
-      const displaySupplier = supplierName || 'Unknown';
-      const displayTotal = totalTtc ? `for *${totalTtc}*` : '';
-      const promptText = `📄 Invoice detected from *${displaySupplier}* ${displayTotal}.\n\nDo you confirm this invoice?\n* Reply *Yes* to confirm & log\n* Reply *No* to discard`;
+      const promptText = formatPendingMessage(
+        '📄 New Document Detected',
+        mediaName,
+        supplierName,
+        totalTtc,
+        documentDate,
+        dueDate,
+        documentType
+      );
 
       await whatsAppService.sendTextMessage(from, promptText, phoneNumberId).catch(() => {});
 
@@ -412,6 +433,30 @@ app.post('/api/webhooks/whatsapp', async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Failed to process webhook' });
   }
 });
+
+function formatPendingMessage(
+  title: string,
+  filename: string,
+  supplierName: string | null,
+  totalTtc: string | null,
+  documentDate: string | null,
+  dueDate: string | null,
+  documentType: string | null
+): string {
+  const typeStr = documentType ? documentType.toUpperCase() : 'DOCUMENT';
+  return `*${title}*\n` +
+         `-------------------------\n` +
+         `📂 *File*: ${filename}\n` +
+         `📝 *Type*: ${typeStr}\n` +
+         `🏢 *Supplier*: ${supplierName || 'Unknown'}\n` +
+         `📅 *Date*: ${documentDate || 'Unknown'}\n` +
+         `⌛ *Due Date*: ${dueDate || 'Unknown'}\n` +
+         `💰 *Total*: ${totalTtc || 'Unknown'}\n` +
+         `-------------------------\n\n` +
+         `Do you confirm this document?\n` +
+         `👉 Reply *Yes* to upload & log\n` +
+         `👉 Reply *No* to discard`;
+}
 
 app.get('/api/jobs/:id', async (req: Request, res: Response) => {
   try {

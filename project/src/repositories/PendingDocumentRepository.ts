@@ -9,6 +9,9 @@ export interface PendingDocument {
   tempFilePath: string;
   supplierName: string | null;
   totalTtc: string | null;
+  documentDate: string | null;
+  dueDate: string | null;
+  documentType: string | null;
   createdAt?: Date;
 }
 
@@ -30,14 +33,20 @@ export class PendingDocumentRepository {
         filename,
         temp_file_path,
         supplier_name,
-        total_ttc
-      ) VALUES ($1, $2, $3, $4, $5, $6)
+        total_ttc,
+        document_date,
+        due_date,
+        document_type
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       ON CONFLICT (phone_number) DO UPDATE SET
         phone_number_id = EXCLUDED.phone_number_id,
         filename = EXCLUDED.filename,
         temp_file_path = EXCLUDED.temp_file_path,
         supplier_name = EXCLUDED.supplier_name,
         total_ttc = EXCLUDED.total_ttc,
+        document_date = EXCLUDED.document_date,
+        due_date = EXCLUDED.due_date,
+        document_type = EXCLUDED.document_type,
         created_at = NOW();
     `;
     const values = [
@@ -46,14 +55,28 @@ export class PendingDocumentRepository {
       doc.filename,
       doc.tempFilePath,
       doc.supplierName,
-      doc.totalTtc
+      doc.totalTtc,
+      doc.documentDate,
+      doc.dueDate,
+      doc.documentType
     ];
     await this.pool.query(query, values);
   }
 
   public async getPending(phoneNumber: string): Promise<PendingDocument | null> {
     const query = `
-      SELECT id, phone_number AS "phoneNumber", phone_number_id AS "phoneNumberId", filename, temp_file_path AS "tempFilePath", supplier_name AS "supplierName", total_ttc AS "totalTtc", created_at AS "createdAt"
+      SELECT 
+        id, 
+        phone_number AS "phoneNumber", 
+        phone_number_id AS "phoneNumberId", 
+        filename, 
+        temp_file_path AS "tempFilePath", 
+        supplier_name AS "supplierName", 
+        total_ttc AS "totalTtc", 
+        document_date AS "documentDate",
+        due_date AS "dueDate",
+        document_type AS "documentType",
+        created_at AS "createdAt"
       FROM pending_documents
       WHERE phone_number = $1;
     `;
