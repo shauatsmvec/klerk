@@ -285,9 +285,77 @@ app.get('/api/documents', async (req: Request, res: Response) => {
   }
 });
 
+async function verifyWabaSubscription(): Promise<void> {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const wabaId = process.env.WABA_ID;
+  const KLERK_APP_ID = '1730220628173875';
+
+  if (!token || !wabaId) {
+    logger.warn('WABA subscription check skipped: WHATSAPP_ACCESS_TOKEN or WABA_ID not configured');
+    return;
+  }
+
+  try {
+    // 1. Check existing subscribed apps
+    const checkUrl = `https://graph.facebook.com/v20.0/${wabaId}/subscribed_apps`;
+    const responseBody = await new Promise<string>((resolve, reject) => {
+      https.get(checkUrl, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }, (res) => {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => resolve(body));
+        res.on('error', err => reject(err));
+      }).on('error', err => reject(err));
+    });
+
+    const data = JSON.parse(responseBody);
+    const isSubscribed = data.data?.some(
+      (app: { id: string }) => app.id === KLERK_APP_ID
+    );
+
+    if (!isSubscribed) {
+      logger.warn('[KLERK] ⚠️ klerk final app not in WABA subscribed_apps — re-registering...');
+      
+      // 2. POST to force subscribe the app
+      await new Promise<void>((resolve, reject) => {
+        const req = https.request({
+          hostname: 'graph.facebook.com',
+          port: 443,
+          path: `/v20.0/${wabaId}/subscribed_apps`,
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }, (res) => {
+          let body = '';
+          res.on('data', chunk => body += chunk);
+          res.on('end', () => {
+            if (res.statusCode === 200) {
+              logger.info('[KLERK] ✅ WABA subscription re-registered successfully');
+              resolve();
+            } else {
+              reject(new Error(`Failed to subscribe app, status: ${res.statusCode}, body: ${body}`));
+            }
+          });
+        });
+        req.on('error', err => reject(err));
+        req.write(JSON.stringify({}));
+        req.end();
+      });
+    } else {
+      logger.info('[KLERK] ✅ WABA subscription active for klerk final app.');
+    }
+  } catch (error: any) {
+    logger.error({ err: error.message }, 'Failed to check/register WABA subscription');
+  }
+}
+
 export async function startServer(port = 3001): Promise<void> {
   await queueService.start();
   await queueService.registerWorker('document-processing', documentWorkerHandler);
+  await verifyWabaSubscription();
   app.listen(port, () => {
     logger.info({ port }, 'Klerk API listening');
   });

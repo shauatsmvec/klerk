@@ -23,6 +23,9 @@ const envSchema = z.object({
     (val) => val ? parseInt(String(val), 10) : 3001,
     z.number()
   ).optional().default(3001),
+  WHATSAPP_ACCESS_TOKEN: z.string().optional(),
+  WABA_ID: z.string().optional(),
+  WHATSAPP_VERIFY_TOKEN: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);
