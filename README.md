@@ -1,54 +1,74 @@
-# Klerk AI Document Processing MVP
+# Klerk AI Multi-Tenant Document Processing MVP
 
-Klerk is a premium, developer-ready AI-powered document processing assistant that automates invoice, receipt, and document parsing. It extracts key structural data (dates, totals, suppliers), uploads files to Google Drive, appends transaction rows to Google Sheets, and updates a local Supabase PostgreSQL registry in the background.
+Klerk is a premium, developer-ready AI-powered document processing assistant that automates invoice, receipt, and document parsing. It features multi-tenancy, WhatsApp conversational registration, user-level file segregation, double-confirmation safety gates, and background task queues.
 
 ---
 
 ## 🏗️ System Architecture
 
-The following Mermaid diagram visualizes the asynchronous ingestion, queuing, and synchronization process:
+The following Mermaid diagram visualizes the asynchronous ingestion, registration state machine, queuing, and synchronization process:
 
 ```mermaid
 graph TD
     %% Ingestion Sources
-    UserUpload[Web UI / Multipart Upload] -->|POST /api/documents/upload| Server[Express API Server]
-    WhatsAppSim[Simulated WhatsApp Client] -->|POST /api/webhooks/whatsapp| Server
+    UserUpload[Web UI / Multipart Ingestion] -->|POST /api/documents/upload| Server[Express API Server]
+    WhatsAppClient[WhatsApp Business Client] -->|POST /api/webhooks/whatsapp| Server
     
-    %% API Routing
-    Server -->|Sync Processing| SyncFlow[Document Service Process]
-    Server -->|Async Webhook| QueueService[Queue Service sendJob]
+    %% API Routing & State Machine
+    Server -->|Sync Upload| SyncFlow[Document Service Process]
+    Server -->|1. Check registration| StateMachine{Is Registered?}
     
-    %% Queue Flow
+    StateMachine -- No --> RegFlow[WhatsApp Registration Flow: Register + Gmail]
+    StateMachine -- Yes --> CmdCheck{Is command?}
+    
+    %% Commands Routing
+    CmdCheck -- Yes (Review/Account) --> CmdFlow[Send Invoice List / Stats]
+    CmdCheck -- No (Media Invoice) --> ConfirmFlow[Detailed Confirmation Gate]
+    
+    %% Queuing & Workers
+    ConfirmFlow -->|Yes Reply| QueueService[Queue Service sendJob]
     QueueService -->|Write Task| pgBoss[(pg-boss Queue Tables)]
     pgBoss -->|Poll Task| BackgroundWorker[Background Queue Worker]
     BackgroundWorker -->|Process File| SyncFlow
     
     %% Document Pipeline Operations
-    SyncFlow -->|1. Extract text| OCRService[OCR Service]
+    SyncFlow -->|1. OCR Text| OCRService[OCR Service]
     SyncFlow -->|2. Categorize| ClassificationService[Classification Service]
     SyncFlow -->|3. Extract values| ExtractionService[Supplier Invoice Extractor]
-    SyncFlow -->|4. Validate| ConfidenceService[Confidence Validation Service]
+    SyncFlow -->|4. Confidence Validation| ConfidenceService[Confidence Validation Service]
     
-    %% Persistence & Storage Interfaces
-    SyncFlow -->|5. Upload| GoogleDrive[Google Drive Service]
-    SyncFlow -->|6. Append| GoogleSheets[Google Sheets Service]
-    SyncFlow -->|7. Persist| Supabase[(Supabase PostgreSQL)]
-    
-    %% Self-Healing Fallback Links
-    GoogleDrive -.->|If sandbox blocked: Flat Fallback| MainFolder[klerk-service Root Folder]
-    GoogleDrive -.->|If GCP Production Mode| NestedFolder[Compta / Year / Month / Type]
+    %% Persistence & Storage Interfaces (Multi-Tenant)
+    SyncFlow -->|5. Segregated Upload| GoogleDrive[Google Drive Service: Compta / user@gmail.com / Year / Month]
+    SyncFlow -->|6. Append Row| GoogleSheets[Google Sheets Service: Adds uploader column]
+    SyncFlow -->|7. Persist Metadata| Supabase[(Supabase PostgreSQL)]
 ```
 
 ---
 
 ## 📑 Database Schema
 
-The metadata registry is stored in a `documents` database table in Supabase.
+Klerk is built with a multi-tenant relational schema mapping WhatsApp users to their unique files.
 
 ### Entity Relationship Diagram (ERD)
 
 ```mermaid
 erDiagram
+    users ||--o{ documents : "uploads"
+    users ||--o| conversation_states : "session"
+    
+    users {
+        uuid id PK "Primary Key"
+        varchar phone_number UK "WhatsApp Phone Number"
+        varchar email UK "Gmail Address ID"
+        timestamp created_at "User registration timestamp"
+    }
+    
+    conversation_states {
+        varchar phone_number PK "WhatsApp Number (Primary Key)"
+        varchar state "AWAITING_EMAIL or empty"
+        timestamp updated_at "State modify timestamp"
+    }
+
     documents {
         uuid id PK "Primary Key"
         varchar original_filename "Original document name"
@@ -64,10 +84,41 @@ erDiagram
         varchar total_ttc "Parsed total amount (with tax)"
         varchar drive_file_id "Uploaded Google Drive file ID"
         varchar drive_web_view_link "Shared view link"
+        varchar uploader_phone FK "WhatsApp number reference"
         timestamp created_at "Record creation date"
         timestamp updated_at "Record modification date"
     }
 ```
+
+---
+
+## 📱 Conversational Features
+
+Klerk transforms your WhatsApp channel into a rich accounting console:
+
+### 1. WhatsApp User Registration
+If an unregistered number messages the bot, all uploads are blocked. They must register first:
+* User sends `"Hi"` ➔ Bot prompts: *"Please reply Register to start registration"*
+* User sends `"Register"` ➔ Bot prompts: *"Please reply with your Gmail address"*
+* User sends `"yourname@gmail.com"` ➔ Bot registers the account, clears states, and opens uploads.
+
+### 2. Double-Confirmation Safety Gate
+When a registered user sends an invoice:
+1. **Structured Details Preview**: The bot runs instant OCR & LLM extraction and texts back a clean breakdown card:
+   > 📄 **New Document Detected**
+   > * **File**: `invoice_xyz.pdf`
+   > * **Type**: `INVOICE`
+   > * **Supplier**: `Moreau Plomberie`
+   > * **Total**: `124.00 €`
+   > * *Reply **Yes** to log, **No** to discard*
+2. **State Confirmation**:
+   * `"Yes"`: Commits document, uploads it to Drive, appends to Sheets, logs database, and texts back confirmation.
+   * `"No"`: Cancels the upload and deletes temp files.
+
+### 3. Assistant Commands
+* **`Review`** (or **`r`**): Returns a list of the user's last 5 processed invoices, complete with clickable Google Drive links.
+* **`Account`** (or **`a`**): Returns the active profile status including their registered Gmail address and total invoices logged.
+* **`Hi`** / **`Menu`**: Displays the active commands menu helper.
 
 ---
 
@@ -129,10 +180,10 @@ erDiagram
 
 Here are the key implementation files in this repository:
 * 🛠️ **Task Queue**: [project/src/queue/QueueService.ts](project/src/queue/QueueService.ts) manages background job dispatching via `pg-boss`.
-* ⚡ **Express Server**: [project/src/api/server.ts](project/src/api/server.ts) exposes webhook ingestion and job polling APIs.
-* 📦 **Containerization**: [project/Dockerfile](project/Dockerfile) & [project/docker-compose.yml](project/docker-compose.yml) configure build and deployment.
+* ⚡ **Express Server**: [project/src/api/server.ts](project/src/api/server.ts) exposes webhook ingestion, registration, and commands handlers.
+* 👤 **User Management**: [project/src/repositories/UserRepository.ts](project/src/repositories/UserRepository.ts) handles DB session states and profiles.
 * 📑 **Extraction Logic**: [project/src/services/SupplierInvoiceExtractor.ts](project/src/services/SupplierInvoiceExtractor.ts) handles natural data parsing.
-* 🔗 **Google Integration**: [project/src/services/GoogleDriveService.ts](project/src/services/GoogleDriveService.ts) uploads files with fallback self-healing.
+* 🔗 **Google Integration**: [project/src/services/GoogleDriveService.ts](project/src/services/GoogleDriveService.ts) segregates files into user folders with self-healing fallback names.
 
 ---
 
@@ -157,55 +208,70 @@ Here are the key implementation files in this repository:
 
 ### Mode Toggles
 In `.env`, you can toggle services between Mock and Real mode:
-* **Google Integration Mock**: Set `GOOGLE_DRIVE_MOCK=true` to use simulated local folder creation and logs, or `false` to connect to your real Google Drive & Sheets using OAuth 2.0.
+* **Google Integration Mock**: Set to `true` to use simulated local folder creation and logs, or `false` to connect to your real Google Drive & Sheets using OAuth 2.0.
 * **OCR fallback**: Extractor automatically provides structured fallback regex parser logic if no external OCR is bound.
 
 ---
 
 ## 🚀 Running the App
 
-Run all commands from the `project/` directory:
+The project is structured as a monorepo split:
+* **Backend API & background worker (`/project`)**: Listens on Port `3001`.
+* **Frontend React Dashboard (`/frontend`)**: Listens on Port `5173`.
 
-### Development Mode (Express API + pg-boss Worker)
+### 1. Running Locally (Development Mode)
+
+**Terminal 1 — Backend**:
 ```bash
+cd project
 npm run dev
 ```
 
-### Production Build
+**Terminal 2 — Frontend**:
 ```bash
-npm run build
-npm start
+cd frontend
+npm run dev
 ```
+Navigate to `http://localhost:5173` in your browser to access the premium Drag-and-Drop dashboard!
 
-### Running with Docker & Compose
-We provide containerized setup profiles to run the application instantly:
+### 2. Containerized Docker Run
+We provide a containerized setup to launch the application:
 ```bash
-# Run the app containerized
+cd project
 docker-compose up --build
 ```
 
 ---
 
+## ☁️ Cloud Deployment & WhatsApp Setup
+
+We provide production configurations and guides in the root documentation folders:
+* **[Production Cloud Deployment Guide](file:///c:/Users/lenovo/Desktop/free_lancing/klerk/documentation/deployment/production_deployment.md)**: Deployment steps for Render and Railway.
+* **[WhatsApp API Token Setup Guide](file:///c:/Users/lenovo/Desktop/free_lancing/klerk/documentation/usage_guide/whatsapp_tokens_setup.md)**: Setup guide for custom verification and access tokens.
+
+---
+
 ## 🧪 Testing and Verification
 
-We provide three comprehensive testing suites to verify processing and extraction accuracy (run from the `project/` directory):
+We provide three comprehensive testing suites to verify processing and extraction accuracy:
 
 ### 1. French Extraction Regex Regression Tests
-Matches realistic French billing label layouts, messy spacing boundaries, and decimal formatting:
+Matches French billing layouts and spacing boundaries:
 ```bash
+cd project
 npm run test:regression
 ```
 
 ### 2. Google OAuth Drive & Sheets Integration Tests
-Verifies real connection linkages, fallback flat folder creation, and sheet transaction row logs:
+Verifies Google connection, folder nesting creation, and spreadsheet transaction logs:
 ```bash
-# Verify Google connection (ensure GOOGLE_DRIVE_MOCK=false)
+cd project
 npx ts-node tests/GoogleIntegration.test.ts
 ```
 
 ### 3. WhatsApp Queue Ingestion Integration Tests
-Starts the Express server, fires a WhatsApp message webhook, enqueues the job into `pg-boss`, processes it in the background worker, and asserts database persistence:
+Starts the server, fires a webhook, enqueues the job into `pg-boss`, processes it, and asserts database persistence:
 ```bash
-# Run background workers and webhook tests end-to-end
+cd project
 npx ts-node tests/QueueSimulation.test.ts
 ```
