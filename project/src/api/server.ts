@@ -237,6 +237,14 @@ app.post('/api/webhooks/whatsapp', async (req: Request, res: Response) => {
       } else {
         let mediaId: string | null = null;
         if (message.type === 'document' && message.document) {
+          if (message.document.mime_type !== 'application/pdf') {
+            await whatsAppService.sendTextMessage(
+              from,
+              `⚠️ Sorry, only PDF invoices and image uploads are supported. Please send a valid file.`,
+              phoneNumberId
+            ).catch(() => {});
+            return res.sendStatus(200);
+          }
           mediaId = message.document.id;
           mediaName = message.document.filename || 'whatsapp_document.pdf';
         } else if (message.type === 'image' && message.image) {
