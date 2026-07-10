@@ -64,9 +64,9 @@ The Klerk MVP is now in a working early stage. The project has a TypeScript foun
 - **Vite React Frontend Dashboard**: Implemented a modern dark-themed React client under `frontend/` running on Port `5173`. Connected client to the API on Port `3001` with dynamic routing variables. Fully verified file uploads, data table registry display, and processing workers status tracking.
 - **WhatsApp Webhook Expansion**: Enhanced `server.ts` to support dual-mode (simulated + real Meta WhatsApp API JSON payloads with GET verification handshake and Graph API file download tokens).
 - **Cloud Deployment Guides**: Added step-by-step documentation for deploying the monorepo to Render and Railway, alongside token-generation instructions in `documentation/`.
+- **E2E WhatsApp Live Verification**: Resolved a Sandbox routing block by force-subscribing the active sandbox WABA ID (`1009585165110762`) to the app (`klerk final`) instead of Meta's default internal dev tool. Implemented a startup checker (`verifyWabaSubscription`) inside `server.ts` to automatically re-register the app-WABA subscription upon container boot. Successfully completed E2E verification: real invoices sent over WhatsApp were automatically routed to the Render server, downloaded from Meta API, parsed, and logged to both Google Drive/Sheets and Supabase.
 
 ## Checkpoint Bookmark
-- **Status Date**: July 9, 2026
-- **Current Checkpoint**: Production deployment configurations, Meta webhook handshakes, folder nesting, and React client dashboard complete and build-verified.
-- **Status**: Klerk is 100% complete, fully verified, and ready for production cloud release.
-
+- **Status Date**: July 10, 2026
+- **Current Checkpoint**: Project is 100% complete. E2E live WhatsApp pipeline, React frontend dashboard, nested Google Drive paths, and pg-boss worker queues are fully verified and live on Render.
+- **Status**: Klerk is completely finished and ready for presentation to recruiters!
